@@ -70,12 +70,18 @@ app.post('/api/create-charge', async (req, res) => {
       return res.status(400).json({ error: 'จำนวนเงินไม่ถูกต้อง' });
     }
 
-    // ใช้ Payment Link API แทน Charge API (เพราะเสถียรกว่าและไม่ต้องจัดการ QR เอง)
+    // สร้าง URL สสำหรับ Redirect กลับมาที่หน้า Thank You
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol; // Vercel ใช้ x-forwarded-proto
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const redirectUrl = `${protocol}://${host}/thank-you`;
+
+    // ใช้ Payment Link API
     const charge = await beam.createPaymentLink({
-      amount: Math.round(amount * 100), // Beam ใช้หน่วย satang
+      amount: Math.round(amount * 100),
       currency: 'THB',
       description: message || `Donation from ${name || 'Anonymous'}`,
-      referenceId: `donate-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+      referenceId: `donate-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      redirectUrl: redirectUrl
     });
 
     // บันทึกรายการลง DB (status: pending)

@@ -35,12 +35,13 @@ const beamApi = axios.create({
  * @param {Object} options.metadata - ข้อมูลเพิ่มเติม
  */
 async function createPromptPayCharge({ amount, currency = 'THB', description, metadata = {} }) {
-  const response = await beamApi.post('/api/v1/charges', {
+  // ลอง URL แบบไม่มี version?
+  const response = await beamApi.post('/api/charges', {
     amount,
     currency,
     description,
     paymentMethod: {
-      paymentMethodType: 'QR',
+      paymentMethodType: 'QR_PROMPT_PAY',
       qrPromptPay: {}
     },
     metadata
@@ -55,7 +56,7 @@ async function createPromptPayCharge({ amount, currency = 'THB', description, me
  * สร้าง Payment Link (ตามเอกสารล่าสุด)
  * @param {Object} options
  */
-async function createPaymentLink({ amount, currency = 'THB', description, referenceId }) {
+async function createPaymentLink({ amount, currency = 'THB', description, referenceId, redirectUrl }) {
   const response = await beamApi.post('/api/v1/payment-links', {
     order: {
       currency,
@@ -68,7 +69,7 @@ async function createPaymentLink({ amount, currency = 'THB', description, refere
       card: { isEnabled: false },
       mobileBanking: { isEnabled: false }
     },
-    redirectUrl: process.env.SITE_URL || 'http://localhost:3000/thank-you' // URL ที่จะ redirect กลับมาเมื่อจ่ายเสร็จ
+    redirectUrl: redirectUrl || process.env.SITE_URL || 'http://localhost:3000/thank-you'
   });
 
   return response.data;

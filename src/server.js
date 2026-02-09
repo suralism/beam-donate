@@ -61,7 +61,7 @@ app.use(express.json({
 }));
 app.use(express.static(path.join(__dirname, '../public')));
 
-// API: สร้าง PromptPay Charge
+// API: สร้าง Donation (Payment Link)
 app.post('/api/create-charge', async (req, res) => {
   try {
     const { amount, name, message } = req.body;
@@ -70,36 +70,32 @@ app.post('/api/create-charge', async (req, res) => {
       return res.status(400).json({ error: 'จำนวนเงินไม่ถูกต้อง' });
     }
 
-    const charge = await beam.createPromptPayCharge({
+    // ใช้ Payment Link API แทน Charge API (เพราะเสถียรกว่าและไม่ต้องจัดการ QR เอง)
+    const charge = await beam.createPaymentLink({
       amount: Math.round(amount * 100), // Beam ใช้หน่วย satang
       currency: 'THB',
       description: message || `Donation from ${name || 'Anonymous'}`,
-      metadata: {
-        donor_name: name || 'Anonymous',
-        message: message || ''
-      }
+      referenceId: `donate-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     });
 
     // บันทึกรายการลง DB (status: pending)
     logTransaction({
-      id: charge.id,
+      id: charge.paymentLinkId || charge.id,
       amount: amount,
       donor: name || 'Anonymous',
       message: message,
       status: 'pending',
+      paymentUrl: charge.url,
       raw_response: charge
     });
 
     res.json({
       success: true,
-      chargeId: charge.id,
-      qrCodeUrl: charge.source?.qr_code_url || charge.qr_code_url,
-      amount: amount,
-      expiresAt: charge.expires_at
+      paymentUrl: charge.url
     });
 
   } catch (error) {
-    console.error('❌ Create charge failed!');
+    console.error('❌ Create payment link failed!');
     if (error.response) {
       console.error('Status:', error.response.status);
       console.error('Data:', JSON.stringify(error.response.data, null, 2));
@@ -108,7 +104,7 @@ app.post('/api/create-charge', async (req, res) => {
     }
 
     res.status(500).json({
-      error: 'ไม่สามารถสร้าง QR Code ได้',
+      error: 'ไม่สามารถสร้างรายการบริจาคได้',
       details: error.response?.data?.message || error.message
     });
   }

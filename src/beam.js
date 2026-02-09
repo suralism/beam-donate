@@ -39,10 +39,36 @@ async function createPromptPayCharge({ amount, currency = 'THB', description, me
     amount,
     currency,
     description,
-    source: {
-      type: 'promptpay' // เปลี่ยนจาก 'promptpay' เป็น 'promptpay_qr' ตาม Doc หรือไม่? ต้องเช็คอีกที แต่แก้ URL ก่อน
+    paymentMethod: {
+      paymentMethodType: 'QR',
+      qrPromptPay: {}
     },
     metadata
+  });
+
+  return response.data;
+}
+
+// ... (existing code for createPromptPayCharge kept but unused) ...
+
+/**
+ * สร้าง Payment Link (ตามเอกสารล่าสุด)
+ * @param {Object} options
+ */
+async function createPaymentLink({ amount, currency = 'THB', description, referenceId }) {
+  const response = await beamApi.post('/api/v1/payment-links', {
+    order: {
+      currency,
+      netAmount: amount, // หน่วย satang
+      description,
+      referenceId: referenceId || `order-${Date.now()}`
+    },
+    linkSettings: {
+      qrPromptPay: { isEnabled: true },
+      card: { isEnabled: false },
+      mobileBanking: { isEnabled: false }
+    },
+    redirectUrl: process.env.SITE_URL || 'http://localhost:3000/thank-you' // URL ที่จะ redirect กลับมาเมื่อจ่ายเสร็จ
   });
 
   return response.data;
@@ -73,6 +99,7 @@ async function listCharges({ limit = 10, starting_after } = {}) {
 
 module.exports = {
   createPromptPayCharge,
+  createPaymentLink,
   getCharge,
   listCharges
 };

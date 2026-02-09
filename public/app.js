@@ -51,19 +51,12 @@ function updateDonateButton() {
 btnDonate.addEventListener('click', async () => {
   if (selectedAmount < 1) return;
 
-  // Show QR step
-  stepAmount.classList.remove('active');
-  stepQR.classList.add('active');
-
-  // Reset QR state
-  qrLoading.style.display = 'block';
-  qrImage.style.display = 'none';
-  displayAmount.textContent = `฿${selectedAmount.toLocaleString()}`;
-  paymentStatus.className = 'status checking';
-  paymentStatus.innerHTML = '<div class="spinner-small"></div><span>รอการชำระเงิน...</span>';
+  // Show loading state
+  btnDonate.disabled = true;
+  btnDonate.textContent = 'กำลังดำเนินการ...';
 
   try {
-    // Create charge
+    // Create charge (Payment Link)
     const response = await fetch('/api/create-charge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -80,19 +73,18 @@ btnDonate.addEventListener('click', async () => {
       throw new Error(data.error || 'เกิดข้อผิดพลาด');
     }
 
-    currentChargeId = data.chargeId;
-
-    // Show QR
-    qrLoading.style.display = 'none';
-    qrImage.src = data.qrCodeUrl;
-    qrImage.style.display = 'block';
-
-    // Start polling for payment status
-    startPolling();
+    if (data.paymentUrl) {
+      // Redirect to Beam Payment Page
+      btnDonate.textContent = 'กำลังพาท่านไปหน้าชำระเงิน...';
+      window.location.href = data.paymentUrl;
+    } else {
+      throw new Error('ไม่ได้รับลิงก์ชำระเงิน');
+    }
 
   } catch (error) {
     alert(error.message);
-    goBack();
+    // Reset button
+    updateDonateButton();
   }
 });
 

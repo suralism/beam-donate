@@ -1,0 +1,137 @@
+// State
+let selectedAmount = 0;
+let currentChargeId = null;
+let pollInterval = null;
+
+// Elements
+const stepAmount = document.getElementById('step-amount');
+const stepQR = document.getElementById('step-qr');
+const amountBtns = document.querySelectorAll('.amount-btn');
+const customAmountInput = document.getElementById('customAmount');
+const donorNameInput = document.getElementById('donorName');
+const donorMessageInput = document.getElementById('donorMessage');
+const btnDonate = document.getElementById('btnDonate');
+const btnBack = document.getElementById('btnBack');
+const qrLoading = document.getElementById('qrLoading');
+const qrImage = document.getElementById('qrImage');
+const displayAmount = document.getElementById('displayAmount');
+const paymentStatus = document.getElementById('paymentStatus');
+
+// Amount button click
+amountBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    amountBtns.forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedAmount = parseInt(btn.dataset.amount);
+    customAmountInput.value = '';
+    updateDonateButton();
+  });
+});
+
+// Custom amount input
+customAmountInput.addEventListener('input', () => {
+  amountBtns.forEach(b => b.classList.remove('selected'));
+  selectedAmount = parseInt(customAmountInput.value) || 0;
+  updateDonateButton();
+});
+
+// Update donate button state
+function updateDonateButton() {
+  btnDonate.disabled = selectedAmount < 1;
+  if (selectedAmount >= 1) {
+    btnDonate.textContent = `บริจาค ฿${selectedAmount.toLocaleString()}`;
+  } else {
+    btnDonate.textContent = 'ดำเนินการต่อ';
+  }
+}
+
+// Donate button click
+btnDonate.addEventListener('click', async () => {
+  if (selectedAmount < 1) return;
+
+  // Show QR step
+  stepAmount.classList.remove('active');
+  stepQR.classList.add('active');
+  
+  // Reset QR state
+  qrLoading.style.display = 'block';
+  qrImage.style.display = 'none';
+  displayAmount.textContent = `฿${selectedAmount.toLocaleString()}`;
+  paymentStatus.className = 'status checking';
+  paymentStatus.innerHTML = '<div class="spinner-small"></div><span>รอการชำระเงิน...</span>';
+
+  try {
+    // Create charge
+    const response = await fetch('/api/create-charge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: selectedAmount,
+        name: donorNameInput.value,
+        message: donorMessageInput.value
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'เกิดข้อผิดพลาด');
+    }
+
+    currentChargeId = data.chargeId;
+
+    // Show QR
+    qrLoading.style.display = 'none';
+    qrImage.src = data.qrCodeUrl;
+    qrImage.style.display = 'block';
+
+    // Start polling for payment status
+    startPolling();
+
+  } catch (error) {
+    alert(error.message);
+    goBack();
+  }
+});
+
+// Back button
+btnBack.addEventListener('click', goBack);
+
+function goBack() {
+  stopPolling();
+  stepQR.classList.remove('active');
+  stepAmount.classList.add('active');
+  currentChargeId = null;
+}
+
+// Poll for payment status
+function startPolling() {
+  pollInterval = setInterval(async () => {
+    if (!currentChargeId) return;
+
+    try {
+      const response = await fetch(`/api/charge/${currentChargeId}`);
+      const data = await response.json();
+
+      if (data.paid) {
+        stopPolling();
+        paymentStatus.className = 'status success';
+        paymentStatus.innerHTML = '✅ ชำระเงินสำเร็จ!';
+        
+        // Redirect to thank you page
+        setTimeout(() => {
+          window.location.href = '/thank-you';
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Polling error:', error);
+    }
+  }, 3000); // Check every 3 seconds
+}
+
+function stopPolling() {
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+}

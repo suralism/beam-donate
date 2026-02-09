@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💝 บริจาค</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- หน้าเลือกจำนวนเงิน -->
+    <div id="step-amount" class="step active">
+      <div class="card">
+        <div class="header">
+          <h1>💝 บริจาค</h1>
+          <p class="subtitle">สนับสนุนโปรเจคของเรา</p>
+        </div>
+
+        <div class="amount-options">
+          <button class="amount-btn" data-amount="50">฿50</button>
+          <button class="amount-btn" data-amount="100">฿100</button>
+          <button class="amount-btn" data-amount="200">฿200</button>
+          <button class="amount-btn" data-amount="500">฿500</button>
+        </div>
+
+        <div class="custom-amount">
+          <label for="customAmount">หรือระบุจำนวนเอง</label>
+          <div class="input-group">
+            <span class="currency">฿</span>
+            <input type="number" id="customAmount" placeholder="0" min="1">
+          </div>
+        </div>
+
+        <div class="donor-info">
+          <input type="text" id="donorName" placeholder="ชื่อผู้บริจาค (ไม่บังคับ)">
+          <textarea id="donorMessage" placeholder="ข้อความถึงเรา (ไม่บังคับ)" rows="2"></textarea>
+        </div>
+
+        <button id="btnDonate" class="btn-primary" disabled>
+          ดำเนินการต่อ
+        </button>
+      </div>
+    </div>
+
+    <!-- หน้าแสดง QR Code -->
+    <div id="step-qr" class="step">
+      <div class="card">
+        <div class="header">
+          <h2>📱 สแกน QR Code</h2>
+          <p class="subtitle">ชำระผ่าน PromptPay</p>
+        </div>
+
+        <div class="qr-container">
+          <div id="qrLoading" class="loading">
+            <div class="spinner"></div>
+            <p>กำลังสร้าง QR Code...</p>
+          </div>
+          <img id="qrImage" src="" alt="QR Code" style="display: none;">
+        </div>
+
+        <div class="amount-display">
+          <span class="label">จำนวนเงิน</span>
+          <span id="displayAmount" class="value">฿0</span>
+        </div>
+
+        <div class="instructions">
+          <p>1. เปิดแอปธนาคารของคุณ</p>
+          <p>2. เลือก "สแกน QR"</p>
+          <p>3. สแกน QR Code ด้านบน</p>
+          <p>4. ยืนยันการชำระเงิน</p>
+        </div>
+
+        <div id="paymentStatus" class="status checking">
+          <div class="spinner-small"></div>
+          <span>รอการชำระเงิน...</span>
+        </div>
+
+        <button id="btnBack" class="btn-secondary">
+          ← ย้อนกลับ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

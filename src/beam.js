@@ -1,0 +1,75 @@
+const axios = require('axios');
+
+const BEAM_ENV = process.env.BEAM_ENV || 'sandbox';
+const BASE_URL = BEAM_ENV === 'production' 
+  ? 'https://api.beamcheckout.com' 
+  : 'https://playground.api.beamcheckout.com';
+
+const API_KEY = process.env.BEAM_API_KEY;
+const SECRET_KEY = process.env.BEAM_SECRET_KEY;
+
+// สร้าง Basic Auth header
+const getAuthHeader = () => {
+  const credentials = Buffer.from(`${API_KEY}:${SECRET_KEY}`).toString('base64');
+  return `Basic ${credentials}`;
+};
+
+// สร้าง Axios instance
+const beamApi = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': getAuthHeader()
+  }
+});
+
+/**
+ * สร้าง PromptPay Charge
+ * @param {Object} options
+ * @param {number} options.amount - จำนวนเงิน (satang)
+ * @param {string} options.currency - สกุลเงิน (THB)
+ * @param {string} options.description - คำอธิบาย
+ * @param {Object} options.metadata - ข้อมูลเพิ่มเติม
+ */
+async function createPromptPayCharge({ amount, currency = 'THB', description, metadata = {} }) {
+  const response = await beamApi.post('/v1/charges', {
+    amount,
+    currency,
+    description,
+    source: {
+      type: 'promptpay'
+    },
+    metadata
+  });
+  
+  return response.data;
+}
+
+/**
+ * ดึงข้อมูล Charge
+ * @param {string} chargeId 
+ */
+async function getCharge(chargeId) {
+  const response = await beamApi.get(`/v1/charges/${chargeId}`);
+  return response.data;
+}
+
+/**
+ * ดึงรายการ Charges
+ * @param {Object} options
+ * @param {number} options.limit
+ * @param {string} options.starting_after
+ */
+async function listCharges({ limit = 10, starting_after } = {}) {
+  const params = { limit };
+  if (starting_after) params.starting_after = starting_after;
+  
+  const response = await beamApi.get('/v1/charges', { params });
+  return response.data;
+}
+
+module.exports = {
+  createPromptPayCharge,
+  getCharge,
+  listCharges
+};

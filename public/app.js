@@ -2,6 +2,8 @@
 let selectedAmount = 0;
 let currentChargeId = null;
 let pollInterval = null;
+const POLLING_TIMEOUT = 600000; // 10 minutes
+let pollingStartTime = null;
 
 // Elements
 const stepAmount = document.getElementById('step-amount');
@@ -52,7 +54,7 @@ btnDonate.addEventListener('click', async () => {
   // Show QR step
   stepAmount.classList.remove('active');
   stepQR.classList.add('active');
-  
+
   // Reset QR state
   qrLoading.style.display = 'block';
   qrImage.style.display = 'none';
@@ -106,8 +108,18 @@ function goBack() {
 
 // Poll for payment status
 function startPolling() {
+  pollingStartTime = Date.now();
+
   pollInterval = setInterval(async () => {
     if (!currentChargeId) return;
+
+    // Check timeout
+    if (Date.now() - pollingStartTime > POLLING_TIMEOUT) {
+      stopPolling();
+      paymentStatus.className = 'status checking'; // Keep yellow/neutral
+      paymentStatus.innerHTML = '⚠️ หมดเวลาการตรวจสอบสถานะ กรุณารีเฟรชหากจ่ายเงินแล้ว';
+      return;
+    }
 
     try {
       const response = await fetch(`/api/charge/${currentChargeId}`);
@@ -117,7 +129,7 @@ function startPolling() {
         stopPolling();
         paymentStatus.className = 'status success';
         paymentStatus.innerHTML = '✅ ชำระเงินสำเร็จ!';
-        
+
         // Redirect to thank you page
         setTimeout(() => {
           window.location.href = '/thank-you';

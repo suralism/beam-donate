@@ -1,16 +1,19 @@
 const axios = require('axios');
 
 const BEAM_ENV = process.env.BEAM_ENV || 'sandbox';
-const BASE_URL = BEAM_ENV === 'production' 
-  ? 'https://api.beamcheckout.com' 
+const BASE_URL = BEAM_ENV === 'production'
+  ? 'https://api.beamcheckout.com'
   : 'https://playground.api.beamcheckout.com';
 
+const MERCHANT_ID = process.env.BEAM_MERCHANT_ID;
 const API_KEY = process.env.BEAM_API_KEY;
-const SECRET_KEY = process.env.BEAM_SECRET_KEY;
 
-// สร้าง Basic Auth header
+// สร้าง Basic Auth header (MerchantID : APIKey)
 const getAuthHeader = () => {
-  const credentials = Buffer.from(`${API_KEY}:${SECRET_KEY}`).toString('base64');
+  if (!MERCHANT_ID || !API_KEY) {
+    console.error('❌ Missing Beam Credentials: Check .env file');
+  }
+  const credentials = Buffer.from(`${MERCHANT_ID}:${API_KEY}`).toString('base64');
   return `Basic ${credentials}`;
 };
 
@@ -32,16 +35,16 @@ const beamApi = axios.create({
  * @param {Object} options.metadata - ข้อมูลเพิ่มเติม
  */
 async function createPromptPayCharge({ amount, currency = 'THB', description, metadata = {} }) {
-  const response = await beamApi.post('/v1/charges', {
+  const response = await beamApi.post('/api/v1/charges', {
     amount,
     currency,
     description,
     source: {
-      type: 'promptpay'
+      type: 'promptpay' // เปลี่ยนจาก 'promptpay' เป็น 'promptpay_qr' ตาม Doc หรือไม่? ต้องเช็คอีกที แต่แก้ URL ก่อน
     },
     metadata
   });
-  
+
   return response.data;
 }
 
@@ -50,7 +53,7 @@ async function createPromptPayCharge({ amount, currency = 'THB', description, me
  * @param {string} chargeId 
  */
 async function getCharge(chargeId) {
-  const response = await beamApi.get(`/v1/charges/${chargeId}`);
+  const response = await beamApi.get(`/api/v1/charges/${chargeId}`);
   return response.data;
 }
 
@@ -63,8 +66,8 @@ async function getCharge(chargeId) {
 async function listCharges({ limit = 10, starting_after } = {}) {
   const params = { limit };
   if (starting_after) params.starting_after = starting_after;
-  
-  const response = await beamApi.get('/v1/charges', { params });
+
+  const response = await beamApi.get('/api/v1/charges', { params });
   return response.data;
 }
 

@@ -9,27 +9,32 @@ const beam = require('./beam');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Setup Simple JSON Database
+// Setup Simple Database (Hybrid: File + Memory)
 const DB_DIR = path.join(__dirname, '../data');
 const DB_FILE = path.join(DB_DIR, 'transactions.json');
 
-if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR);
+// ใช้ In-Memory เป็นตัวหลัก เพื่อให้รองรับ Serverless (Vercel)
+let transactions = [];
+
+// พยายามโหลดข้อมูลเก่าจากไฟล์ (ถ้ามี)
+try {
+  if (!fs.existsSync(DB_DIR)) {
+    // ถ้าสร้าง folder ไม่ได้ (เช่นบน Vercel) จะ throw error ไป catch
+    fs.mkdirSync(DB_DIR);
+  }
+  if (fs.existsSync(DB_FILE)) {
+    const fileContent = fs.readFileSync(DB_FILE, 'utf8');
+    transactions = JSON.parse(fileContent);
+  }
+} catch (err) {
+  console.warn('⚠️ Warning: Cannot access file system for DB. Using in-memory storage only.');
+  console.warn('Error details:', err.code || err.message);
+  // บน Vercel จะตกมาที่นี่ ซึ่งโอเคทำงานต่อได้
 }
 
 // Function: บันทึก Transaction
 function logTransaction(data) {
-  let transactions = [];
-  try {
-    if (fs.existsSync(DB_FILE)) {
-      const fileContent = fs.readFileSync(DB_FILE, 'utf8');
-      transactions = JSON.parse(fileContent);
-    }
-  } catch (err) {
-    console.error('Error reading DB:', err);
-  }
-
-  // หาตัวซ้ำถ้ามีให้ update
+  // 1. Update In-Memory
   const existingIndex = transactions.findIndex(t => t.id === data.id);
   if (existingIndex >= 0) {
     transactions[existingIndex] = { ...transactions[existingIndex], ...data, updatedAt: new Date().toISOString() };
@@ -37,7 +42,13 @@ function logTransaction(data) {
     transactions.push({ ...data, createdAt: new Date().toISOString() });
   }
 
-  fs.writeFileSync(DB_FILE, JSON.stringify(transactions, null, 2));
+  // 2. Try to persist to file (Optional)
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(transactions, null, 2));
+  } catch (err) {
+    // ถ้าเขียนไฟล์ไม่ได้ (เช่น Vercel) ก็ข้ามไป ไม่ต้อง crash
+    // console.warn('Note: Could not save transaction to file (likely read-only fs)');
+  }
 }
 
 // Middleware

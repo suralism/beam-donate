@@ -12,9 +12,37 @@ const PORT = process.env.PORT || 3000;
 // Setup Simple Database (Hybrid: File + Memory)
 const DB_DIR = path.join(__dirname, '../data');
 const DB_FILE = path.join(DB_DIR, 'transactions.json');
+const SETTINGS_FILE = path.join(DB_DIR, 'overlay-settings.json');
 
 // ใช้ In-Memory เป็นตัวหลัก เพื่อให้รองรับ Serverless (Vercel)
 let transactions = [];
+
+// ค่าตั้งค่าเริ่มต้นของ Overlay
+const defaultSettings = {
+  duration: 8, // seconds
+  soundEnabled: true,
+  soundChoice: 'chime', // chime, retro, modern, bell, none
+  soundVolume: 0.5,
+  ttsEnabled: false,
+  ttsVolume: 0.8,
+  ttsRate: 1.0,
+  ttsLanguage: 'th-TH',
+  ttsVoice: 'default',
+  messageTemplate: '{donor} ได้บริจาค {amount} บาท! 🎉',
+  showDonorMessage: true,
+  minAmount: 1, // Minimum amount to trigger alert
+  theme: 'glassmorphism', // glassmorphism, cyberpunk, minimal, custom
+  animation: 'slide-down', // slide-down, slide-up, fade, zoom
+  fontFamily: 'Noto Sans Thai',
+  primaryColor: '#667eea',
+  secondaryColor: '#764ba2',
+  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  textColor: '#ffffff',
+  borderColor: 'rgba(255, 255, 255, 0.25)',
+  particleCount: 15
+};
+
+let overlaySettings = { ...defaultSettings };
 
 // ========== SSE Alert System ==========
 // เก็บ list ของ connected overlay clients
@@ -23,7 +51,7 @@ let sseClients = [];
 // Broadcast alert ไปยังทุก connected overlay
 function broadcastAlert(alertData) {
   const data = JSON.stringify(alertData);
-  console.log(`📢 Broadcasting alert to ${sseClients.length} client(s):`, alertData.donor, alertData.amount);
+  console.log(`📢 Broadcasting alert to ${sseClients.length} client(s):`, alertData.donor || 'System Update', alertData.amount || '');
   sseClients.forEach(client => {
     client.write(`data: ${data}\n\n`);
   });
@@ -38,6 +66,10 @@ try {
   if (fs.existsSync(DB_FILE)) {
     const fileContent = fs.readFileSync(DB_FILE, 'utf8');
     transactions = JSON.parse(fileContent);
+  }
+  if (fs.existsSync(SETTINGS_FILE)) {
+    const settingsContent = fs.readFileSync(SETTINGS_FILE, 'utf8');
+    overlaySettings = { ...defaultSettings, ...JSON.parse(settingsContent) };
   }
 } catch (err) {
   console.warn('⚠️ Warning: Cannot access file system for DB. Using in-memory storage only.');
@@ -247,6 +279,80 @@ app.get('/api/alerts/stream', (req, res) => {
   });
 });
 
+// API: ดึงรายการธุรกรรมทั้งหมด
+app.get('/api/transactions', (req, res) => {
+  res.json(transactions);
+});
+
+// API: อัปเดตสถานะธุรกรรมด้วยตนเอง (สำหรับ Dev/Test)
+app.post('/api/transactions/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const validStatuses = ['pending', 'successful', 'failed'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: 'สถานะไม่ถูกต้อง' });
+  }
+
+  const tx = transactions.find(t => t.id === id);
+  if (!tx) {
+    return res.status(404).json({ error: 'ไม่พบธุรกรรมนี้' });
+  }
+
+  tx.status = status;
+  tx.updatedAt = new Date().toISOString();
+
+  // เซฟลงไฟล์
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(transactions, null, 2));
+  } catch (err) {
+    // ignore filesystem errors on Vercel
+  }
+
+  // หากเปลี่ยนเป็น successful ให้จำลองส่ง Alert ด้วย!
+  if (status === 'successful') {
+    broadcastAlert({
+      type: 'donation',
+      donor: tx.donor || 'Anonymous',
+      amount: tx.amount || 0,
+      message: tx.message || '',
+      timestamp: new Date().toISOString(),
+      isManualTrigger: true
+    });
+  }
+
+  res.json({ success: true, transaction: tx });
+});
+
+// API: ดึงตั้งค่า Overlay ปัจจุบัน
+app.get('/api/overlay/settings', (req, res) => {
+  res.json(overlaySettings);
+});
+
+// API: บันทึกตั้งค่า Overlay ใหม่
+app.post('/api/overlay/settings', (req, res) => {
+  try {
+    overlaySettings = { ...defaultSettings, ...req.body };
+
+    // เซฟลงไฟล์
+    try {
+      fs.writeFileSync(SETTINGS_FILE, JSON.stringify(overlaySettings, null, 2));
+    } catch (err) {
+      // ignore filesystem errors on Vercel
+    }
+
+    // Broadcast ไปยัง overlay ให้ปรับตัวแบบเรียลไทม์
+    broadcastAlert({
+      type: 'settings_update',
+      settings: overlaySettings
+    });
+
+    res.json({ success: true, settings: overlaySettings });
+  } catch (error) {
+    res.status(500).json({ error: 'ไม่สามารถบันทึกการตั้งค่าได้', details: error.message });
+  }
+});
+
 // API: ส่ง Test Alert (สำหรับทดสอบ)
 app.post('/api/alerts/test', (req, res) => {
   const { donor, amount, message } = req.body;
@@ -273,10 +379,16 @@ app.get('/alert-test', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/alert-test.html'));
 });
 
+// Serve admin page
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🌸 Beam Donate server running at http://localhost:${PORT}`);
   console.log(`📋 Environment: ${process.env.BEAM_ENV || 'sandbox'}`);
   console.log(`🎬 Overlay URL: http://localhost:${PORT}/overlay`);
   console.log(`🧪 Alert Test: http://localhost:${PORT}/alert-test`);
+  console.log(`📊 Admin Panel: http://localhost:${PORT}/admin`);
 });

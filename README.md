@@ -11,6 +11,9 @@
   - 👛 E-Wallets (TrueMoney, ShopeePay, LINE Pay ฯลฯ)
 - ✅ เลือกจำนวนเงินหรือกรอกเอง
 - ✅ 🎬 **Live Donation Alert** แสดงบน OBS/Stream (คล้าย TipMe/Streamlabs)
+- ✅ 📊 **Premium Admin Dashboard** จัดการยอด ดูสถิติ และจำลองหรือบังคับสถานะธุรกรรม
+- ✅ 🎨 **Real-time Live Customization** ปรับแต่งสกินสี ขอบ ฟอนต์ แอนิเมชัน และละอองวิบวับของ Alert แบบสดๆ ได้ทันที
+- ✅ 🔊 **Sound & Speech Synthesis (TTS)** เลือกโทนเสียงเตือน ปรับความดัง และมี AI อ่านข้อความออกเสียงภาษาไทย/อังกฤษฟรี!
 - ✅ Webhook รับแจ้งเตือนเมื่อชำระสำเร็จ
 - ✅ หน้า Thank You หลังจ่ายเสร็จ
 - ✅ 🧪 Alert Test Dashboard ทดสอบ alert โดยไม่ต้องจ่ายเงินจริง
@@ -82,6 +85,11 @@ http://localhost:3000
 | GET | `/thank-you` | หน้าขอบคุณ |
 | GET | `/overlay` | 🎬 Donation Alert Overlay (สำหรับ OBS Browser Source) |
 | GET | `/alert-test` | 🧪 Alert Test Dashboard |
+| GET | `/admin` | 📊 Premium Admin Dashboard |
+| GET | `/api/transactions` | ดึงรายการประวัติการบริจาคทั้งหมด |
+| POST | `/api/transactions/:id/status` | บังคับสถานะรายการบริจาค (เช่น Force Pay) |
+| GET | `/api/overlay/settings` | ดึงค่าปรับแต่ง Overlay ปัจจุบัน |
+| POST | `/api/overlay/settings` | บันทึกค่าปรับแต่ง Overlay และยิง SSE Sync |
 | GET | `/api/alerts/stream` | SSE stream สำหรับ overlay |
 | POST | `/api/alerts/test` | ส่ง test alert |
 
@@ -118,6 +126,9 @@ beam-donate/
 │   ├── overlay.css       # Overlay styles + animations
 │   ├── overlay.js        # SSE client + alert queue
 │   ├── alert-test.html   # 🧪 Alert Test Dashboard
+│   ├── admin.html        # 📊 Premium Admin Dashboard
+│   ├── admin.css         # Admin Dashboard styles
+│   ├── admin.js          # Admin Dashboard logic
 │   ├── style.css         # Donate page styles
 │   └── app.js            # Donate page JS
 ├── src/
@@ -132,6 +143,28 @@ beam-donate/
 ## 🎬 Live Donation Alert (OBS Overlay)
 
 ระบบแสดงแจ้งเตือนบริจาคแบบ real-time บน live stream คล้าย TipMe / Streamlabs
+
+## 📊 Premium Admin Dashboard (ระบบแดชบอร์ดสตรีมเมอร์)
+
+หน้าควบคุมสุดพรีเมียมสไตล์ Modern Dark Mode ช่วยให้สตรีมเมอร์สามารถบริหารจัดการธุรกรรมการบริจาคและปรับแต่งสไตล์ของ Live Overlay ได้อย่างสมบูรณ์แบบ:
+
+### วิธีใช้งาน
+1. เปิดเบราว์เซอร์แล้วไปที่: `http://localhost:3000/admin`
+2. **Dashboard Tab:** ดูสถิติรวมยอดบริจาค, อัตราความสำเร็จสำเร็จ (Success Ratio) และสถิติธุรกรรม
+3. **Donation History Tab:** 
+   - ค้นหารายการและฟิลเตอร์สถานะธุรกรรม
+   - **Force Pay:** บังคับให้ธุรกรรม Pending เปลี่ยนเป็น Success (ช่วยทดสอบ Flow เสมือนจ่ายเงินจริง)
+   - **Test Alert:** ยิง Alert ของธุรกรรมรายนั้นๆ ขึ้นจอเพื่อทดสอบ
+   - **Raw Inspect:** เปิดกล่องตรวจสอบ JSON Payload เชิงลึก
+4. **Overlay Configurator Tab:**
+   - **Visual Themes:** เลือกสกินแสดงผล (Glassmorphism, Cyberpunk Neon, Minimalist, Custom) ปรับแต่งโทนสีสัน ขอบ และละออง particles วิบวับ
+   - **Typography:** เปลี่ยนแบบอักษรภาษาไทยยอดนิยม (Noto Sans Thai, Kanit, Mitr, Chakra Petch, Sarabun)
+   - **Entrance Animations:** คุมวิถีการเด้งแจ้งเตือน (เลื่อนลงจากบน, เลื่อนขึ้นจากล่าง, เลื่อนจากข้าง, ซูมเข้า, ค่อยๆ เฟด) และเวลาค้างของ Alert (2-20 วินาที)
+   - **Audio Alert:** เลือกประเภทเสียงเตือน (Classic Chime, Retro Arcade, Modern Synth, Soft Bell) และระดับสไลเดอร์เสียง
+   - **TTS Engine (อ่านออกเสียง AI):** สวิตช์เปิดใช้ระบบสังเคราะห์เสียงพูดอ่านข้อความภาษาไทย/อังกฤษ ด้วย Web Speech API อัตโนมัติ (เลือกสปีดเร็ว/ช้า และระดับเสียงพูดได้)
+   - **Real-time Live Sync:** เมื่อกดบันทึกหรือยิงทดสอบ การตั้งค่าต่างๆ จะซิงค์ผ่าน SSE และ**อัปเดตสกินสี แอนิเมชัน และเสียงเตือนบนหน้าจอ OBS จริงทันทีโดยไม่ต้องกด Refresh OBS ใหม่!**
+   - **Live Preview:** มี Iframe ตัวอย่างจำลองแบบ Interactive ช่วยให้เห็นผลตกแต่งสดๆ ก่อนนำไปขึ้นไลฟ์จริง
+
 
 ### วิธีใช้งาน
 

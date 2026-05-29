@@ -23,6 +23,7 @@
 - **Frontend:** HTML + CSS + JavaScript
 - **Backend:** Node.js + Express
 - **Payment:** Beam Checkout API (PromptPay, Card, Mobile Banking, E-Wallets)
+- **Database:** SQLite (Local Development) & **Turso DB** (Cloud SQLite for Serverless/Vercel)
 - **Realtime:** Server-Sent Events (SSE)
 
 ## Setup
@@ -56,6 +57,10 @@ PORT=3000
 
 # Webhook Secret (optional - สำหรับ verify webhook)
 WEBHOOK_SECRET=your_webhook_secret
+
+# Turso Cloud SQLite Database (สำหรับบันทึกข้อมูลถาวรบน Vercel)
+TURSO_DATABASE_URL=libsql://your-db-name.turso.io
+TURSO_AUTH_TOKEN=your_turso_jwt_auth_token_here
 ```
 
 ### 3. รัน Server
@@ -73,6 +78,16 @@ npm start
 ```
 http://localhost:3000
 ```
+
+## 📊 Database Configuration
+
+ระบบจัดการข้อมูลธุรกรรมและการตั้งค่ามีรูปแบบยืดหยุ่นสูง (Hybrid Storage):
+1. **Local Development (SQLite ในตัว):** ไม่ต้องตั้งค่าใดๆ ระบบจะเขียนไฟล์ลงดิสก์ที่ `data/database.db` ของคุณอัตโนมัติ
+2. **Production/Vercel (Turso Cloud DB):** เนื่องจากระบบไฟล์บน Vercel เป็น Read-Only ทำให้ข้อมูลหายเมื่อรีเซ็ตอินสแตนซ์ จึงแนะนำให้เชื่อมต่อกับ **Turso DB** ซึ่งเป็น SQLite ในระบบคลาวด์ (ผ่าน `@libsql/client` แบบ HTTP ที่เสถียรและเร็วมาก)
+
+> [!TIP]
+> **ระบบย้ายข้อมูลเดิมอัตโนมัติ (Zero-Downtime Auto-Migration):**
+> ทันทีที่คุณเปิดรันเซิร์ฟเวอร์ด้วยระบบฐานข้อมูลใหม่นี้ ระบบจะค้นหาและคัดลอกประวัติการบริจาคและค่าตั้งค่า Overlay จากไฟล์ JSON เก่า (`transactions.json` และ `overlay-settings.json`) ย้ายเข้าไปเก็บใน Turso/SQLite ให้อัตโนมัติในครั้งแรก ข้อมูลเดิมไม่มีสูญหายแน่นอน!
 
 ## API Endpoints
 
@@ -133,7 +148,9 @@ beam-donate/
 │   └── app.js            # Donate page JS
 ├── src/
 │   ├── server.js         # Express server + SSE
+│   ├── database.js       # 📊 SQLite/Turso Database Manager
 │   └── beam.js           # Beam API wrapper
+├── data/                 # โฟลเดอร์เก็บ SQLite Database และไฟล์สำรอง (.bak)
 ├── .env.example          # ตัวอย่าง environment variables
 ├── .gitignore
 ├── package.json

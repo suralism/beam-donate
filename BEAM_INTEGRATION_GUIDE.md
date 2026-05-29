@@ -22,6 +22,8 @@
 | `BEAM_API_KEY` | `RnpDrEs...` | API Key (สำหรับ Sandbox หรือ Production) |
 | `BEAM_ENV` | `sandbox` | หรือ `production` (ต้องตรงกับ Key ที่ใช้) |
 | `WEBHOOK_SECRET` | `KOFEL...=` | Secret Key จากหน้า Webhook ของ Beam Dashboard |
+| `TURSO_DATABASE_URL` | `libsql://your-db.turso.io` | URL เชื่อมต่อของ Turso Cloud SQLite Database (สำหรับเก็บข้อมูลถาวร) |
+| `TURSO_AUTH_TOKEN` | `eyJhbGciOi...` | JWT Auth Token สำหรับตรวจสอบสิทธิ์เข้าถึง Turso |
 
 > **สำคัญ:** ค่าเหล่านี้จะไม่ถูกอัปโหลดไปกับ Code (Git) เพื่อความปลอดภัย คุณต้องไปใส่เองใน Vercel Dashboard
 
@@ -102,5 +104,7 @@ linkSettings: {
 - **วิธีแก้:** ตรวจสอบ `linkSettings` ว่ามี field ที่ Beam API รองรับ และยอดเงินถูกต้อง
 
 **🔴 Error EROFS: read-only file system (บน Vercel)**
-- **สาเหตุ:** พยายามเขียนไฟล์ JSON Database ลงใน Serverless Function
-- **วิธีแก้:** ระบบปัจจุบันแก้ให้ใช้ **In-Memory Storage** ชั่วคราวเมื่อเขียนไฟล์ไม่ได้ (ข้อมูลจะหายเมื่อ Server Restart)
+- **สาเหตุ:** พยายามเขียนหรือเปิดไฟล์ SQLite `database.db` ลงในดิสก์บน Serverless Function ของ Vercel ซึ่งล็อกไว้เป็น Read-Only เท่านั้น
+- **วิธีแก้:** 
+  1. **ทางเลือกที่สมบูรณ์แบบ:** กำหนดตัวแปร `TURSO_DATABASE_URL` และ `TURSO_AUTH_TOKEN` บน Vercel Dashboard ระบบจะสลับไปใช้ **Turso DB** ในคลาวด์โดยทันที ข้อมูลธุรกรรมและการตั้งค่าจะบันทึกถาวร 100%
+  2. **ระบบสำรอง (Fallback):** หากไม่มีการระบุตัวแปร Turso ระบบของโครงการจะสลับมาใช้ **In-Memory Fallback Engine** อัตโนมัติ เพื่อป้องกันระบบล่ม โดยข้อมูลจะเก็บชั่วคราวขณะเซิร์ฟเวอร์ตื่นทำงาน เท่านั้น

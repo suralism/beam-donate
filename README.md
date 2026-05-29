@@ -1,4 +1,4 @@
-# Beam Donate 🌸
+# Stream Donation 🌸
 
 หน้า Donate รับชำระเงินหลายช่องทางผ่าน Beam Checkout API พร้อมระบบ Live Donation Alert สำหรับ OBS
 

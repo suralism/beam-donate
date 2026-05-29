@@ -434,7 +434,7 @@ app.get('/admin', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🌸 Beam Donate server running at http://localhost:${PORT}`);
+  console.log(`🌸 Stream Donation server running at http://localhost:${PORT}`);
   console.log(`📋 Environment: ${process.env.BEAM_ENV || 'sandbox'}`);
   console.log(`🎬 Overlay URL: http://localhost:${PORT}/overlay`);
   console.log(`🧪 Alert Test: http://localhost:${PORT}/alert-test`);

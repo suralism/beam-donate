@@ -66,8 +66,9 @@ async function createPaymentLink({ amount, currency = 'THB', description, refere
     },
     linkSettings: {
       qrPromptPay: { isEnabled: true },
-      card: { isEnabled: false },
-      mobileBanking: { isEnabled: false }
+      card: { isEnabled: true },
+      mobileBanking: { isEnabled: true },
+      eWallets: { isEnabled: true }
     },
     redirectUrl: redirectUrl || process.env.SITE_URL || 'http://localhost:3000/thank-you'
   });

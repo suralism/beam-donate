@@ -39,7 +39,8 @@ const defaultSettings = {
   backgroundColor: 'rgba(255, 255, 255, 0.1)',
   textColor: '#ffffff',
   borderColor: 'rgba(255, 255, 255, 0.25)',
-  particleCount: 15
+  particleCount: 15,
+  fontSize: 32
 };
 
 // ========== SSE Alert System ==========

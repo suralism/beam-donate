@@ -458,3 +458,66 @@ body {
   0% { opacity: 1; transform: translate(0, 0) scale(1); }
   100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
 }
+
+/* ========== Theme: Text-Only (Plain Text Overlay) ========== */
+.alert-box.theme-text-only {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.alert-box.theme-text-only .alert-content {
+  background: transparent !important;
+  color: var(--text-color) !important;
+  border: none !important;
+  padding: 12px 0 !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.alert-box.theme-text-only .alert-icon,
+.alert-box.theme-text-only .alert-glow,
+.alert-box.theme-text-only .alert-progress {
+  display: none !important;
+}
+
+.alert-box.theme-text-only .alert-info {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.alert-box.theme-text-only .alert-header {
+  justify-content: center !important;
+  margin-bottom: 4px !important;
+}
+
+.alert-box.theme-text-only .donor-name {
+  font-size: calc(var(--font-size) * 0.5) !important; /* Scale to 50% of the custom font size */
+  color: var(--text-color) !important;
+  opacity: 0.95;
+  text-align: center !important;
+}
+
+.alert-box.theme-text-only .alert-amount {
+  font-size: var(--font-size) !important; /* Primary configurable font size */
+  color: var(--primary-color) !important;
+  text-align: center !important;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+.alert-box.theme-text-only .alert-message {
+  font-size: calc(var(--font-size) * 0.45) !important; /* Scale to 45% of custom font size */
+  color: var(--text-color) !important;
+  opacity: 0.85;
+  text-align: center !important;
+  margin-top: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+

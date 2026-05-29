@@ -320,6 +320,9 @@ async function loadOverlaySettings() {
       document.getElementById('sliderParticles').value = s.particleCount;
       document.getElementById('lblParticles').textContent = s.particleCount;
 
+      document.getElementById('sliderFontSize').value = s.fontSize || 32;
+      document.getElementById('lblFontSize').textContent = s.fontSize || 32;
+
       // Audio Checkboxes
       document.getElementById('chkSoundEnabled').checked = s.soundEnabled;
       document.getElementById('soundChoiceSelect').value = s.soundChoice;
@@ -363,6 +366,9 @@ document.getElementById('sliderDuration').oninput = (e) => {
 document.getElementById('sliderParticles').oninput = (e) => {
   document.getElementById('lblParticles').textContent = e.target.value;
 };
+document.getElementById('sliderFontSize').oninput = (e) => {
+  document.getElementById('lblFontSize').textContent = e.target.value;
+};
 document.getElementById('sliderSoundVolume').oninput = (e) => {
   document.getElementById('lblSoundVolume').textContent = Math.round(e.target.value * 100);
 };
@@ -376,7 +382,7 @@ document.getElementById('sliderTtsRate').oninput = (e) => {
 // Toggle display rules
 function toggleCustomColors(theme) {
   const container = document.getElementById('customColorsContainer');
-  if (theme === 'custom' || theme === 'glassmorphism') {
+  if (theme === 'custom' || theme === 'glassmorphism' || theme === 'text-only') {
     container.style.display = 'block';
   } else {
     container.style.display = 'none';
@@ -434,6 +440,7 @@ document.getElementById('overlaySettingsForm').onsubmit = async (e) => {
     animation: document.getElementById('animSelect').value,
     duration: parseInt(document.getElementById('sliderDuration').value),
     particleCount: parseInt(document.getElementById('sliderParticles').value),
+    fontSize: parseInt(document.getElementById('sliderFontSize').value) || 32,
     
     primaryColor: document.getElementById('txtPrimary').value,
     secondaryColor: document.getElementById('txtSecondary').value,

@@ -220,6 +220,7 @@
                         <option value="cyberpunk">Cyberpunk Neon (สไตล์เกมเมอร์สะท้อนแสง)</option>
                         <option value="minimal">Minimalist Clean (เรียบง่าย สบายตา)</option>
                         <option value="custom">Custom Color (กำหนดสีเองตามต้องการ)</option>
+                        <option value="text-only">Text Only (เฉพาะข้อความ ไม่มีกล่อง)</option>
                       </select>
                     </div>
 
@@ -288,9 +289,13 @@
                   </div>
 
                   <div class="form-row">
-                    <div class="form-group full-width">
+                    <div class="form-group">
                       <label for="sliderParticles">เอฟเฟกต์ละอองวิบวับ (<span id="lblParticles">15</span> ชิ้น)</label>
                       <input type="range" id="sliderParticles" class="form-range" min="0" max="30" step="1" value="15">
+                    </div>
+                    <div class="form-group">
+                      <label for="sliderFontSize">ขนาดตัวอักษร (<span id="lblFontSize">32</span>px)</label>
+                      <input type="range" id="sliderFontSize" class="form-range" min="16" max="72" step="1" value="32">
                     </div>
                   </div>
                 </div>

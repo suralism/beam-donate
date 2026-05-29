@@ -23,7 +23,8 @@ let overlaySettings = {
   backgroundColor: 'rgba(15, 15, 25, 0.88)',
   textColor: '#ffffff',
   borderColor: 'rgba(255, 255, 255, 0.25)',
-  particleCount: 15
+  particleCount: 15,
+  fontSize: 32
 };
 
 // ========== Queue System ==========
@@ -63,6 +64,7 @@ function applySettings(settings) {
   doc.style.setProperty('--border-color', overlaySettings.borderColor);
   doc.style.setProperty('--font-family', `'${overlaySettings.fontFamily}', 'Segoe UI', sans-serif`);
   doc.style.setProperty('--glow-color', hexToRgbA(overlaySettings.primaryColor, 0.25));
+  doc.style.setProperty('--font-size', `${overlaySettings.fontSize || 32}px`);
 
   console.log('⚡ Applied settings:', overlaySettings.theme, overlaySettings.animation);
 }

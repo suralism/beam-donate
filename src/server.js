@@ -181,25 +181,39 @@ app.post('/webhook', async (req, res) => {
     if (eventType === 'charge.completed' || eventType === 'charge.succeeded' || event.status === 'SUCCEEDED') {
       const charge = event; // Payload คือตัว Charge Object เลยตามเอกสาร
       const amount = charge.amount ? (charge.amount / 100) : 0;
+      const chargeId = charge.chargeId || charge.id;
+      const paymentLinkId = charge.sourceId; // sourceId is the Payment Link ID in Beam webhook
 
-      console.log(`✅ Payment successful: ${charge.chargeId || charge.id}, Amount: ${amount} THB`);
+      console.log(`✅ Payment successful: ${chargeId}, Amount: ${amount} THB (Link ID: ${paymentLinkId})`);
+
+      // 1. Find existing transaction by Payment Link ID (first) or Charge ID (second)
+      let tx = null;
+      if (paymentLinkId) {
+        tx = await db.getTransactionById(paymentLinkId);
+      }
+      if (!tx && chargeId) {
+        tx = await db.getTransactionById(chargeId);
+      }
+
+      const targetId = tx ? tx.id : (paymentLinkId || chargeId);
 
       // 2. Update DB
       await logTransaction({
-        id: charge.chargeId || charge.id,
+        id: targetId,
+        amount: amount || (tx ? tx.amount : 0),
         status: 'successful',
         paidAt: new Date().toISOString(),
         raw_webhook: event
       });
 
       // 3. Broadcast Alert ไปยัง Overlay
-      // หาข้อมูล donor จาก transaction ที่บันทึกไว้ตอน create-charge
-      const tx = (await db.getTransactionById(charge.chargeId || charge.id)) || {};
+      // ดึงข้อมูลล่าสุดหลังอัปเดตเพื่อส่งแจ้งเตือน
+      const txDetails = (await db.getTransactionById(targetId)) || {};
       broadcastAlert({
         type: 'donation',
-        donor: tx.donor || 'Anonymous',
-        amount: amount || tx.amount || 0,
-        message: tx.message || charge.description || '',
+        donor: txDetails.donor || 'Anonymous',
+        amount: amount || txDetails.amount || 0,
+        message: txDetails.message || charge.description || '',
         timestamp: new Date().toISOString()
       });
     }

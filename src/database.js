@@ -5,140 +5,162 @@ let db = null;
 let isFallback = false;
 let memoryTransactions = [];
 let memorySettings = null;
+let initPromise = null;
+let isInitialized = false;
 
 /**
  * Initialize Connection to Turso database using @libsql/client,
  * and handle legacy migrations. Fallback to in-memory on error.
  */
 async function initDB() {
-  const url = process.env.TURSO_DATABASE_URL;
-  const authToken = process.env.TURSO_AUTH_TOKEN;
+  if (initPromise) return initPromise;
 
-  if (!url) {
-    useInMemoryFallback('TURSO_DATABASE_URL is not configured in environment variables');
-    return;
-  }
+  initPromise = (async () => {
+    const url = process.env.TURSO_DATABASE_URL;
+    const authToken = process.env.TURSO_AUTH_TOKEN;
 
-  console.log(`🔌 Connecting to Turso Database at ${url}...`);
-
-  try {
-    const { createClient } = require('@libsql/client');
-    db = createClient({
-      url,
-      authToken
-    });
-
-    // 1. Create transactions table
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS transactions (
-        id TEXT PRIMARY KEY,
-        amount REAL NOT NULL,
-        donor TEXT DEFAULT 'Anonymous',
-        message TEXT DEFAULT '',
-        status TEXT DEFAULT 'pending',
-        paymentUrl TEXT,
-        raw_response TEXT,
-        raw_webhook TEXT,
-        createdAt TEXT,
-        updatedAt TEXT,
-        paidAt TEXT
-      )
-    `);
-
-    // 2. Create settings table
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      )
-    `);
-
-    console.log('✅ Turso Database tables verified.');
-
-    // 3. Auto Migration of Legacy JSON files (If Turso is empty and local files/backups exist)
-    const DB_DIR = path.join(__dirname, '../data');
-    const LEGACY_DB_FILE = path.join(DB_DIR, 'transactions.json');
-    const LEGACY_SETTINGS_FILE = path.join(DB_DIR, 'overlay-settings.json');
-
-    const txCountRes = await db.execute('SELECT count(*) as count FROM transactions');
-    const settingsCountRes = await db.execute("SELECT count(*) as count FROM settings WHERE key = 'overlay_settings'");
-    
-    const isTxEmpty = txCountRes.rows[0].count === 0;
-    const isSettingsEmpty = settingsCountRes.rows[0].count === 0;
-
-    let txFileToMigrate = null;
-    if (fs.existsSync(LEGACY_DB_FILE)) txFileToMigrate = LEGACY_DB_FILE;
-    else if (fs.existsSync(LEGACY_DB_FILE + '.bak')) txFileToMigrate = LEGACY_DB_FILE + '.bak';
-
-    let settingsFileToMigrate = null;
-    if (fs.existsSync(LEGACY_SETTINGS_FILE)) settingsFileToMigrate = LEGACY_SETTINGS_FILE;
-    else if (fs.existsSync(LEGACY_SETTINGS_FILE + '.bak')) settingsFileToMigrate = LEGACY_SETTINGS_FILE + '.bak';
-
-    // Migrate Transactions if Turso is empty
-    if (isTxEmpty && txFileToMigrate) {
-      console.log(`📦 Legacy transactions file found (${path.basename(txFileToMigrate)}). Migrating to Turso DB...`);
-      const fileContent = fs.readFileSync(txFileToMigrate, 'utf8');
-      const legacyTx = JSON.parse(fileContent);
-      
-      if (Array.isArray(legacyTx)) {
-        for (const tx of legacyTx) {
-          const rawResponse = tx.raw_response ? JSON.stringify(tx.raw_response) : null;
-          const rawWebhook = tx.raw_webhook ? JSON.stringify(tx.raw_webhook) : null;
-          
-          await db.execute({
-            sql: `INSERT OR IGNORE INTO transactions (id, amount, donor, message, status, paymentUrl, raw_response, raw_webhook, createdAt, updatedAt, paidAt)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            args: [
-              tx.id,
-              tx.amount || 0,
-              tx.donor || 'Anonymous',
-              tx.message || '',
-              tx.status || 'pending',
-              tx.paymentUrl || null,
-              rawResponse,
-              rawWebhook,
-              tx.createdAt || new Date().toISOString(),
-              tx.updatedAt || new Date().toISOString(),
-              tx.paidAt || null
-            ]
-          });
-        }
-        console.log(`✅ Successfully migrated ${legacyTx.length} legacy transactions to Turso.`);
-      }
-      
-      if (txFileToMigrate === LEGACY_DB_FILE) {
-        try {
-          fs.renameSync(LEGACY_DB_FILE, LEGACY_DB_FILE + '.bak');
-          console.log(`📁 Renamed legacy transactions.json to transactions.json.bak`);
-        } catch (e) {}
-      }
+    if (!url) {
+      useInMemoryFallback('TURSO_DATABASE_URL is not configured in environment variables');
+      return;
     }
 
-    // Migrate Settings if Turso is empty
-    if (isSettingsEmpty && settingsFileToMigrate) {
-      console.log(`📦 Legacy settings file found (${path.basename(settingsFileToMigrate)}). Migrating to Turso DB...`);
-      const settingsContent = fs.readFileSync(settingsFileToMigrate, 'utf8');
-      const legacySettings = JSON.parse(settingsContent);
-      
-      await db.execute({
-        sql: `INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`,
-        args: ['overlay_settings', JSON.stringify(legacySettings)]
+    console.log(`🔌 Connecting to Turso Database at ${url}...`);
+
+    try {
+      const { createClient } = require('@libsql/client');
+      db = createClient({
+        url,
+        authToken
       });
-      
-      console.log('✅ Successfully migrated settings to Turso.');
-      
-      if (settingsFileToMigrate === LEGACY_SETTINGS_FILE) {
-        try {
-          fs.renameSync(LEGACY_SETTINGS_FILE, LEGACY_SETTINGS_FILE + '.bak');
-          console.log(`📁 Renamed legacy overlay-settings.json to overlay-settings.json.bak`);
-        } catch (e) {}
-      }
-    }
 
-  } catch (err) {
-    console.warn('⚠️ Warning: Cannot connect to Turso database. Falling back to in-memory database.');
-    console.warn('Error details:', err.message);
-    useInMemoryFallback(err.message);
+      // 1. Create transactions table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS transactions (
+          id TEXT PRIMARY KEY,
+          amount REAL NOT NULL,
+          donor TEXT DEFAULT 'Anonymous',
+          message TEXT DEFAULT '',
+          status TEXT DEFAULT 'pending',
+          paymentUrl TEXT,
+          raw_response TEXT,
+          raw_webhook TEXT,
+          createdAt TEXT,
+          updatedAt TEXT,
+          paidAt TEXT
+        )
+      `);
+
+      // 2. Create settings table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )
+      `);
+
+      console.log('✅ Turso Database tables verified.');
+
+      // 3. Auto Migration of Legacy JSON files (If Turso is empty and local files/backups exist)
+      const DB_DIR = path.join(__dirname, '../data');
+      const LEGACY_DB_FILE = path.join(DB_DIR, 'transactions.json');
+      const LEGACY_SETTINGS_FILE = path.join(DB_DIR, 'overlay-settings.json');
+
+      const txCountRes = await db.execute('SELECT count(*) as count FROM transactions');
+      const settingsCountRes = await db.execute("SELECT count(*) as count FROM settings WHERE key = 'overlay_settings'");
+      
+      const isTxEmpty = txCountRes.rows[0].count === 0;
+      const isSettingsEmpty = settingsCountRes.rows[0].count === 0;
+
+      let txFileToMigrate = null;
+      if (fs.existsSync(LEGACY_DB_FILE)) txFileToMigrate = LEGACY_DB_FILE;
+      else if (fs.existsSync(LEGACY_DB_FILE + '.bak')) txFileToMigrate = LEGACY_DB_FILE + '.bak';
+
+      let settingsFileToMigrate = null;
+      if (fs.existsSync(LEGACY_SETTINGS_FILE)) settingsFileToMigrate = LEGACY_SETTINGS_FILE;
+      else if (fs.existsSync(LEGACY_SETTINGS_FILE + '.bak')) settingsFileToMigrate = LEGACY_SETTINGS_FILE + '.bak';
+
+      // Migrate Transactions if Turso is empty
+      if (isTxEmpty && txFileToMigrate) {
+        console.log(`📦 Legacy transactions file found (${path.basename(txFileToMigrate)}). Migrating to Turso DB...`);
+        const fileContent = fs.readFileSync(txFileToMigrate, 'utf8');
+        const legacyTx = JSON.parse(fileContent);
+        
+        if (Array.isArray(legacyTx)) {
+          for (const tx of legacyTx) {
+            const rawResponse = tx.raw_response ? JSON.stringify(tx.raw_response) : null;
+            const rawWebhook = tx.raw_webhook ? JSON.stringify(tx.raw_webhook) : null;
+            
+            await db.execute({
+              sql: `INSERT OR IGNORE INTO transactions (id, amount, donor, message, status, paymentUrl, raw_response, raw_webhook, createdAt, updatedAt, paidAt)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              args: [
+                tx.id,
+                tx.amount || 0,
+                tx.donor || 'Anonymous',
+                tx.message || '',
+                tx.status || 'pending',
+                tx.paymentUrl || null,
+                rawResponse,
+                rawWebhook,
+                tx.createdAt || new Date().toISOString(),
+                tx.updatedAt || new Date().toISOString(),
+                tx.paidAt || null
+              ]
+            });
+          }
+          console.log(`✅ Successfully migrated ${legacyTx.length} legacy transactions to Turso.`);
+        }
+        
+        if (txFileToMigrate === LEGACY_DB_FILE) {
+          try {
+            fs.renameSync(LEGACY_DB_FILE, LEGACY_DB_FILE + '.bak');
+            console.log(`📁 Renamed legacy transactions.json to transactions.json.bak`);
+          } catch (e) {}
+        }
+      }
+
+      // Migrate Settings if Turso is empty
+      if (isSettingsEmpty && settingsFileToMigrate) {
+        console.log(`📦 Legacy settings file found (${path.basename(settingsFileToMigrate)}). Migrating to Turso DB...`);
+        const settingsContent = fs.readFileSync(settingsFileToMigrate, 'utf8');
+        const legacySettings = JSON.parse(settingsContent);
+        
+        await db.execute({
+          sql: `INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`,
+          args: ['overlay_settings', JSON.stringify(legacySettings)]
+        });
+        
+        console.log('✅ Successfully migrated settings to Turso.');
+        
+        if (settingsFileToMigrate === LEGACY_SETTINGS_FILE) {
+          try {
+            fs.renameSync(LEGACY_SETTINGS_FILE, LEGACY_SETTINGS_FILE + '.bak');
+            console.log(`📁 Renamed legacy overlay-settings.json to overlay-settings.json.bak`);
+          } catch (e) {}
+        }
+      }
+
+      isInitialized = true;
+    } catch (err) {
+      console.warn('⚠️ Warning: Cannot connect to Turso database. Falling back to in-memory database.');
+      console.warn('Error details:', err.message);
+      useInMemoryFallback(err.message);
+    }
+  })();
+
+  return initPromise;
+}
+
+/**
+ * Wait until database initialization finishes to avoid query race conditions during hot-reload.
+ */
+async function ensureConnected() {
+  if (!isInitialized) {
+    if (initPromise) {
+      await initPromise;
+    } else {
+      await initDB();
+    }
   }
 }
 
@@ -147,6 +169,7 @@ async function initDB() {
  */
 function useInMemoryFallback(reason) {
   isFallback = true;
+  isInitialized = true; // Mark as initialized so fallback operations can execute immediately
   console.log(`💡 Switched to In-Memory Fallback storage. Reason: ${reason}`);
 
   const DB_DIR = path.join(__dirname, '../data');
@@ -186,6 +209,7 @@ function useInMemoryFallback(reason) {
  * Fetch all transactions ordered by creation date descending.
  */
 async function getTransactions() {
+  await ensureConnected();
   if (isFallback) {
     return [...memoryTransactions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
@@ -202,6 +226,7 @@ async function getTransactions() {
  * Find a transaction by ID.
  */
 async function getTransactionById(id) {
+  await ensureConnected();
   if (isFallback) {
     return memoryTransactions.find(t => t.id === id) || null;
   }
@@ -223,6 +248,7 @@ async function getTransactionById(id) {
  * Merge and save/update a transaction.
  */
 async function saveTransaction(data) {
+  await ensureConnected();
   if (isFallback) {
     const existingIndex = memoryTransactions.findIndex(t => t.id === data.id);
     const now = new Date().toISOString();
@@ -346,6 +372,7 @@ async function saveTransaction(data) {
  * Fetch overlay settings from database or return default.
  */
 async function getSettings(defaultSettings) {
+  await ensureConnected();
   if (isFallback) {
     return memorySettings ? { ...defaultSettings, ...memorySettings } : defaultSettings;
   }
@@ -369,6 +396,7 @@ async function getSettings(defaultSettings) {
  * Save overlay settings.
  */
 async function saveSettings(settings) {
+  await ensureConnected();
   if (isFallback) {
     memorySettings = settings;
     try {

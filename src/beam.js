@@ -57,6 +57,10 @@ async function createPromptPayCharge({ amount, currency = 'THB', description, me
  * @param {Object} options
  */
 async function createPaymentLink({ amount, currency = 'THB', description, referenceId, redirectUrl }) {
+  // Beam กำหนดขั้นต่ำบัตรเครดิต 200 บาท (20000 satang)
+  const CARD_MIN_AMOUNT = 20000;
+  const isCardEnabled = amount >= CARD_MIN_AMOUNT;
+
   const response = await beamApi.post('/api/v1/payment-links', {
     order: {
       currency,
@@ -66,7 +70,7 @@ async function createPaymentLink({ amount, currency = 'THB', description, refere
     },
     linkSettings: {
       qrPromptPay: { isEnabled: true },
-      card: { isEnabled: true },
+      card: { isEnabled: isCardEnabled },
       mobileBanking: { isEnabled: true },
       eWallets: { isEnabled: true }
     },

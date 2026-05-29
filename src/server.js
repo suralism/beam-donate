@@ -10,13 +10,9 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Setup Simple Database (Hybrid: File + Memory)
-const DB_DIR = path.join(__dirname, '../data');
-const DB_FILE = path.join(DB_DIR, 'transactions.json');
-const SETTINGS_FILE = path.join(DB_DIR, 'overlay-settings.json');
-
-// ใช้ In-Memory เป็นตัวหลัก เพื่อให้รองรับ Serverless (Vercel)
-let transactions = [];
+// Setup SQLite Database
+const db = require('./database');
+db.initDB();
 
 // ค่าตั้งค่าเริ่มต้นของ Overlay
 const defaultSettings = {
@@ -46,8 +42,6 @@ const defaultSettings = {
   particleCount: 15
 };
 
-let overlaySettings = { ...defaultSettings };
-
 // ========== SSE Alert System ==========
 // เก็บ list ของ connected overlay clients
 let sseClients = [];
@@ -61,42 +55,13 @@ function broadcastAlert(alertData) {
   });
 }
 
-// พยายามโหลดข้อมูลเก่าจากไฟล์ (ถ้ามี)
-try {
-  if (!fs.existsSync(DB_DIR)) {
-    // ถ้าสร้าง folder ไม่ได้ (เช่นบน Vercel) จะ throw error ไป catch
-    fs.mkdirSync(DB_DIR);
-  }
-  if (fs.existsSync(DB_FILE)) {
-    const fileContent = fs.readFileSync(DB_FILE, 'utf8');
-    transactions = JSON.parse(fileContent);
-  }
-  if (fs.existsSync(SETTINGS_FILE)) {
-    const settingsContent = fs.readFileSync(SETTINGS_FILE, 'utf8');
-    overlaySettings = { ...defaultSettings, ...JSON.parse(settingsContent) };
-  }
-} catch (err) {
-  console.warn('⚠️ Warning: Cannot access file system for DB. Using in-memory storage only.');
-  console.warn('Error details:', err.code || err.message);
-  // บน Vercel จะตกมาที่นี่ ซึ่งโอเคทำงานต่อได้
-}
-
 // Function: บันทึก Transaction
 function logTransaction(data) {
-  // 1. Update In-Memory
-  const existingIndex = transactions.findIndex(t => t.id === data.id);
-  if (existingIndex >= 0) {
-    transactions[existingIndex] = { ...transactions[existingIndex], ...data, updatedAt: new Date().toISOString() };
-  } else {
-    transactions.push({ ...data, createdAt: new Date().toISOString() });
-  }
-
-  // 2. Try to persist to file (Optional)
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(transactions, null, 2));
+    return db.saveTransaction(data);
   } catch (err) {
-    // ถ้าเขียนไฟล์ไม่ได้ (เช่น Vercel) ก็ข้ามไป ไม่ต้อง crash
-    // console.warn('Note: Could not save transaction to file (likely read-only fs)');
+    console.error('❌ Error logging transaction to SQLite:', err.message);
+    return null;
   }
 }
 
@@ -229,7 +194,7 @@ app.post('/webhook', (req, res) => {
 
       // 3. Broadcast Alert ไปยัง Overlay
       // หาข้อมูล donor จาก transaction ที่บันทึกไว้ตอน create-charge
-      const tx = transactions.find(t => t.id === (charge.chargeId || charge.id)) || {};
+      const tx = db.getTransactionById(charge.chargeId || charge.id) || {};
       broadcastAlert({
         type: 'donation',
         donor: tx.donor || 'Anonymous',
@@ -285,7 +250,11 @@ app.get('/api/alerts/stream', (req, res) => {
 
 // API: ดึงรายการธุรกรรมทั้งหมด
 app.get('/api/transactions', (req, res) => {
-  res.json(transactions);
+  try {
+    res.json(db.getTransactions());
+  } catch (err) {
+    res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลรายการธุรกรรมได้', details: err.message });
+  }
 });
 
 // API: อัปเดตสถานะธุรกรรมด้วยตนเอง (สำหรับ Dev/Test)
@@ -298,60 +267,57 @@ app.post('/api/transactions/:id/status', (req, res) => {
     return res.status(400).json({ error: 'สถานะไม่ถูกต้อง' });
   }
 
-  const tx = transactions.find(t => t.id === id);
-  if (!tx) {
-    return res.status(404).json({ error: 'ไม่พบธุรกรรมนี้' });
-  }
-
-  tx.status = status;
-  tx.updatedAt = new Date().toISOString();
-
-  // เซฟลงไฟล์
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(transactions, null, 2));
-  } catch (err) {
-    // ignore filesystem errors on Vercel
-  }
+    const tx = db.getTransactionById(id);
+    if (!tx) {
+      return res.status(404).json({ error: 'ไม่พบธุรกรรมนี้' });
+    }
 
-  // หากเปลี่ยนเป็น successful ให้จำลองส่ง Alert ด้วย!
-  if (status === 'successful') {
-    broadcastAlert({
-      type: 'donation',
-      donor: tx.donor || 'Anonymous',
-      amount: tx.amount || 0,
-      message: tx.message || '',
-      timestamp: new Date().toISOString(),
-      isManualTrigger: true
+    const updatedTx = db.saveTransaction({
+      id,
+      status
     });
-  }
 
-  res.json({ success: true, transaction: tx });
+    // หากเปลี่ยนเป็น successful ให้จำลองส่ง Alert ด้วย!
+    if (status === 'successful') {
+      broadcastAlert({
+        type: 'donation',
+        donor: updatedTx.donor || 'Anonymous',
+        amount: updatedTx.amount || 0,
+        message: updatedTx.message || '',
+        timestamp: new Date().toISOString(),
+        isManualTrigger: true
+      });
+    }
+
+    res.json({ success: true, transaction: updatedTx });
+  } catch (err) {
+    res.status(500).json({ error: 'ไม่สามารถอัปเดตสถานะธุรกรรมได้', details: err.message });
+  }
 });
 
 // API: ดึงตั้งค่า Overlay ปัจจุบัน
 app.get('/api/overlay/settings', (req, res) => {
-  res.json(overlaySettings);
+  try {
+    res.json(db.getSettings(defaultSettings));
+  } catch (err) {
+    res.status(500).json({ error: 'ไม่สามารถดึงการตั้งค่าได้', details: err.message });
+  }
 });
 
 // API: บันทึกตั้งค่า Overlay ใหม่
 app.post('/api/overlay/settings', (req, res) => {
   try {
-    overlaySettings = { ...defaultSettings, ...req.body };
-
-    // เซฟลงไฟล์
-    try {
-      fs.writeFileSync(SETTINGS_FILE, JSON.stringify(overlaySettings, null, 2));
-    } catch (err) {
-      // ignore filesystem errors on Vercel
-    }
+    const newSettings = { ...defaultSettings, ...req.body };
+    const savedSettings = db.saveSettings(newSettings);
 
     // Broadcast ไปยัง overlay ให้ปรับตัวแบบเรียลไทม์
     broadcastAlert({
       type: 'settings_update',
-      settings: overlaySettings
+      settings: savedSettings
     });
 
-    res.json({ success: true, settings: overlaySettings });
+    res.json({ success: true, settings: savedSettings });
   } catch (error) {
     res.status(500).json({ error: 'ไม่สามารถบันทึกการตั้งค่าได้', details: error.message });
   }

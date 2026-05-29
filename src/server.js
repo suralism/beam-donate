@@ -10,9 +10,9 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Setup SQLite Database
+// Setup SQLite Database (Turso Cloud)
 const db = require('./database');
-db.initDB();
+db.initDB().catch(err => console.error('❌ Database connection failed:', err));
 
 // ค่าตั้งค่าเริ่มต้นของ Overlay
 const defaultSettings = {
@@ -56,11 +56,11 @@ function broadcastAlert(alertData) {
 }
 
 // Function: บันทึก Transaction
-function logTransaction(data) {
+async function logTransaction(data) {
   try {
-    return db.saveTransaction(data);
+    return await db.saveTransaction(data);
   } catch (err) {
-    console.error('❌ Error logging transaction to SQLite:', err.message);
+    console.error('❌ Error logging transaction to SQLite/Turso:', err.message);
     return null;
   }
 }
@@ -99,7 +99,7 @@ app.post('/api/create-charge', async (req, res) => {
     });
 
     // บันทึกรายการลง DB (status: pending)
-    logTransaction({
+    await logTransaction({
       id: charge.paymentLinkId || charge.id,
       amount: amount,
       donor: name || 'Anonymous',
@@ -147,7 +147,7 @@ app.get('/api/charge/:id', async (req, res) => {
 });
 
 // Webhook: รับแจ้งเตือนจาก Beam (Secure Version)
-app.post('/webhook', (req, res) => {
+app.post('/webhook', async (req, res) => {
   try {
     const signature = req.headers['x-beam-signature'];
     const webhookSecret = process.env.WEBHOOK_SECRET;
@@ -185,7 +185,7 @@ app.post('/webhook', (req, res) => {
       console.log(`✅ Payment successful: ${charge.chargeId || charge.id}, Amount: ${amount} THB`);
 
       // 2. Update DB
-      logTransaction({
+      await logTransaction({
         id: charge.chargeId || charge.id,
         status: 'successful',
         paidAt: new Date().toISOString(),
@@ -194,7 +194,7 @@ app.post('/webhook', (req, res) => {
 
       // 3. Broadcast Alert ไปยัง Overlay
       // หาข้อมูล donor จาก transaction ที่บันทึกไว้ตอน create-charge
-      const tx = db.getTransactionById(charge.chargeId || charge.id) || {};
+      const tx = (await db.getTransactionById(charge.chargeId || charge.id)) || {};
       broadcastAlert({
         type: 'donation',
         donor: tx.donor || 'Anonymous',
@@ -249,16 +249,16 @@ app.get('/api/alerts/stream', (req, res) => {
 });
 
 // API: ดึงรายการธุรกรรมทั้งหมด
-app.get('/api/transactions', (req, res) => {
+app.get('/api/transactions', async (req, res) => {
   try {
-    res.json(db.getTransactions());
+    res.json(await db.getTransactions());
   } catch (err) {
     res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลรายการธุรกรรมได้', details: err.message });
   }
 });
 
 // API: อัปเดตสถานะธุรกรรมด้วยตนเอง (สำหรับ Dev/Test)
-app.post('/api/transactions/:id/status', (req, res) => {
+app.post('/api/transactions/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -268,12 +268,12 @@ app.post('/api/transactions/:id/status', (req, res) => {
   }
 
   try {
-    const tx = db.getTransactionById(id);
+    const tx = await db.getTransactionById(id);
     if (!tx) {
       return res.status(404).json({ error: 'ไม่พบธุรกรรมนี้' });
     }
 
-    const updatedTx = db.saveTransaction({
+    const updatedTx = await db.saveTransaction({
       id,
       status
     });
@@ -297,19 +297,19 @@ app.post('/api/transactions/:id/status', (req, res) => {
 });
 
 // API: ดึงตั้งค่า Overlay ปัจจุบัน
-app.get('/api/overlay/settings', (req, res) => {
+app.get('/api/overlay/settings', async (req, res) => {
   try {
-    res.json(db.getSettings(defaultSettings));
+    res.json(await db.getSettings(defaultSettings));
   } catch (err) {
     res.status(500).json({ error: 'ไม่สามารถดึงการตั้งค่าได้', details: err.message });
   }
 });
 
 // API: บันทึกตั้งค่า Overlay ใหม่
-app.post('/api/overlay/settings', (req, res) => {
+app.post('/api/overlay/settings', async (req, res) => {
   try {
     const newSettings = { ...defaultSettings, ...req.body };
-    const savedSettings = db.saveSettings(newSettings);
+    const savedSettings = await db.saveSettings(newSettings);
 
     // Broadcast ไปยัง overlay ให้ปรับตัวแบบเรียลไทม์
     broadcastAlert({

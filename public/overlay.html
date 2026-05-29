@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donation Alert Overlay</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="overlay.css">
+</head>
+<body>
+  <!-- Alert Container -->
+  <div id="alertContainer"></div>
+
+  <!-- Alert Template (ซ่อนไว้ ใช้ clone) -->
+  <template id="alertTemplate">
+    <div class="alert-box">
+      <div class="alert-glow"></div>
+      <div class="alert-content">
+        <div class="alert-icon">
+          <span class="icon-emoji">💝</span>
+          <div class="icon-ring"></div>
+        </div>
+        <div class="alert-info">
+          <div class="alert-header">
+            <span class="donor-name"></span>
+            <span class="alert-label">บริจาค</span>
+          </div>
+          <div class="alert-amount"></div>
+          <div class="alert-message"></div>
+        </div>
+      </div>
+      <div class="alert-progress">
+        <div class="alert-progress-bar"></div>
+      </div>
+    </div>
+  </template>
+
+  <script src="overlay.js"></script>
+</body>
+</html>

@@ -1,20 +1,26 @@
 # Beam Donate 🌸
 
-หน้า Donate ง่ายๆ รับชำระผ่าน PromptPay ด้วย Beam Checkout API
+หน้า Donate รับชำระเงินหลายช่องทางผ่าน Beam Checkout API พร้อมระบบ Live Donation Alert สำหรับ OBS
 
 ## Features
 
-- ✅ รับบริจาคผ่าน PromptPay QR Code
+- ✅ รับบริจาคผ่านหลายช่องทาง:
+  - 💚 QR PromptPay
+  - 💳 บัตรเครดิต/เดบิต (Visa, Mastercard, Amex, UnionPay) — ขั้นต่ำ 200 บาท
+  - 🏦 Mobile Banking
+  - 👛 E-Wallets (TrueMoney, ShopeePay, LINE Pay ฯลฯ)
 - ✅ เลือกจำนวนเงินหรือกรอกเอง
-- ✅ แสดง QR Code สำหรับสแกนจ่าย
+- ✅ 🎬 **Live Donation Alert** แสดงบน OBS/Stream (คล้าย TipMe/Streamlabs)
 - ✅ Webhook รับแจ้งเตือนเมื่อชำระสำเร็จ
 - ✅ หน้า Thank You หลังจ่ายเสร็จ
+- ✅ 🧪 Alert Test Dashboard ทดสอบ alert โดยไม่ต้องจ่ายเงินจริง
 
 ## Tech Stack
 
 - **Frontend:** HTML + CSS + JavaScript
 - **Backend:** Node.js + Express
-- **Payment:** Beam Checkout API (PromptPay)
+- **Payment:** Beam Checkout API (PromptPay, Card, Mobile Banking, E-Wallets)
+- **Realtime:** Server-Sent Events (SSE)
 
 ## Setup
 
@@ -70,10 +76,14 @@ http://localhost:3000
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/` | หน้า Donate |
-| POST | `/api/create-charge` | สร้าง PromptPay charge |
+| POST | `/api/create-charge` | สร้าง Payment Link (รองรับทุกช่องทาง) |
 | GET | `/api/charge/:id` | เช็คสถานะ charge |
 | POST | `/webhook` | รับ webhook จาก Beam |
 | GET | `/thank-you` | หน้าขอบคุณ |
+| GET | `/overlay` | 🎬 Donation Alert Overlay (สำหรับ OBS Browser Source) |
+| GET | `/alert-test` | 🧪 Alert Test Dashboard |
+| GET | `/api/alerts/stream` | SSE stream สำหรับ overlay |
+| POST | `/api/alerts/test` | ส่ง test alert |
 
 ## Beam API Keys
 
@@ -102,18 +112,47 @@ http://localhost:3000
 ```
 beam-donate/
 ├── public/
-│   ├── index.html      # หน้า Donate
-│   ├── thank-you.html  # หน้าขอบคุณ
-│   ├── style.css       # Styles
-│   └── app.js          # Frontend JS
+│   ├── index.html        # หน้า Donate
+│   ├── thank-you.html    # หน้าขอบคุณ
+│   ├── overlay.html      # 🎬 Donation Alert Overlay (OBS)
+│   ├── overlay.css       # Overlay styles + animations
+│   ├── overlay.js        # SSE client + alert queue
+│   ├── alert-test.html   # 🧪 Alert Test Dashboard
+│   ├── style.css         # Donate page styles
+│   └── app.js            # Donate page JS
 ├── src/
-│   ├── server.js       # Express server
-│   └── beam.js         # Beam API wrapper
-├── .env.example        # ตัวอย่าง environment variables
+│   ├── server.js         # Express server + SSE
+│   └── beam.js           # Beam API wrapper
+├── .env.example          # ตัวอย่าง environment variables
 ├── .gitignore
 ├── package.json
 └── README.md
 ```
+
+## 🎬 Live Donation Alert (OBS Overlay)
+
+ระบบแสดงแจ้งเตือนบริจาคแบบ real-time บน live stream คล้าย TipMe / Streamlabs
+
+### วิธีใช้งาน
+
+1. เปิด OBS Studio
+2. เพิ่ม **Browser Source** ใหม่
+3. ใส่ URL: `http://localhost:3000/overlay`
+4. ตั้งค่า Width: `800`, Height: `200`
+5. เมื่อมีคนบริจาคสำเร็จ → Alert จะแสดงอัตโนมัติ
+
+### URL Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `duration` | `8000` | ระยะเวลาแสดง alert (ms) |
+| `sound` | `true` | เปิด/ปิดเสียงแจ้งเตือน |
+
+ตัวอย่าง: `/overlay?duration=10000&sound=false`
+
+### ทดสอบ Alert
+
+เปิด `http://localhost:3000/alert-test` เพื่อส่ง test alert โดยไม่ต้องจ่ายเงินจริง
 
 ## License
 
@@ -121,4 +160,4 @@ MIT
 
 ---
 
-Made with 🌸 by Alice
+Made by TBDEV

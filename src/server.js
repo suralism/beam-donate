@@ -16,6 +16,19 @@ const DB_FILE = path.join(DB_DIR, 'transactions.json');
 // ใช้ In-Memory เป็นตัวหลัก เพื่อให้รองรับ Serverless (Vercel)
 let transactions = [];
 
+// ========== SSE Alert System ==========
+// เก็บ list ของ connected overlay clients
+let sseClients = [];
+
+// Broadcast alert ไปยังทุก connected overlay
+function broadcastAlert(alertData) {
+  const data = JSON.stringify(alertData);
+  console.log(`📢 Broadcasting alert to ${sseClients.length} client(s):`, alertData.donor, alertData.amount);
+  sseClients.forEach(client => {
+    client.write(`data: ${data}\n\n`);
+  });
+}
+
 // พยายามโหลดข้อมูลเก่าจากไฟล์ (ถ้ามี)
 try {
   if (!fs.existsSync(DB_DIR)) {
@@ -177,6 +190,17 @@ app.post('/webhook', (req, res) => {
         paidAt: new Date().toISOString(),
         raw_webhook: event
       });
+
+      // 3. Broadcast Alert ไปยัง Overlay
+      // หาข้อมูล donor จาก transaction ที่บันทึกไว้ตอน create-charge
+      const tx = transactions.find(t => t.id === (charge.chargeId || charge.id)) || {};
+      broadcastAlert({
+        type: 'donation',
+        donor: tx.donor || 'Anonymous',
+        amount: amount || tx.amount || 0,
+        message: tx.message || charge.description || '',
+        timestamp: new Date().toISOString()
+      });
     }
 
     res.json({ received: true });
@@ -191,8 +215,68 @@ app.get('/thank-you', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/thank-you.html'));
 });
 
+// ========== Overlay & Alert Routes ==========
+
+// SSE: Stream alerts ไปยัง overlay
+app.get('/api/alerts/stream', (req, res) => {
+  // ตั้งค่า SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  // ส่ง initial connection event
+  res.write(`data: ${JSON.stringify({ type: 'connected', message: 'Overlay connected' })}\n\n`);
+
+  // เพิ่ม client เข้า list
+  sseClients.push(res);
+  console.log(`🔗 Overlay connected. Total clients: ${sseClients.length}`);
+
+  // Keep-alive ping ทุก 30 วินาที
+  const keepAlive = setInterval(() => {
+    res.write(`: keep-alive\n\n`);
+  }, 30000);
+
+  // Cleanup เมื่อ client disconnect
+  req.on('close', () => {
+    clearInterval(keepAlive);
+    sseClients = sseClients.filter(client => client !== res);
+    console.log(`🔌 Overlay disconnected. Total clients: ${sseClients.length}`);
+  });
+});
+
+// API: ส่ง Test Alert (สำหรับทดสอบ)
+app.post('/api/alerts/test', (req, res) => {
+  const { donor, amount, message } = req.body;
+
+  const alertData = {
+    type: 'donation',
+    donor: donor || 'ผู้ทดสอบ',
+    amount: amount || 100,
+    message: message || 'นี่คือ test alert 🎉',
+    timestamp: new Date().toISOString()
+  };
+
+  broadcastAlert(alertData);
+  res.json({ success: true, alert: alertData, clients: sseClients.length });
+});
+
+// Serve overlay page
+app.get('/overlay', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/overlay.html'));
+});
+
+// Serve alert test page
+app.get('/alert-test', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/alert-test.html'));
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🌸 Beam Donate server running at http://localhost:${PORT}`);
   console.log(`📋 Environment: ${process.env.BEAM_ENV || 'sandbox'}`);
+  console.log(`🎬 Overlay URL: http://localhost:${PORT}/overlay`);
+  console.log(`🧪 Alert Test: http://localhost:${PORT}/alert-test`);
 });

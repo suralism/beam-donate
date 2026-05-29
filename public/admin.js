@@ -340,10 +340,16 @@ async function loadOverlaySettings() {
       document.getElementById('chkShowDonorMessage').checked = s.showDonorMessage;
       document.getElementById('inputMinAmount').value = s.minAmount;
 
+      // Profanity Filter
+      document.getElementById('chkProfanityFilterEnabled').checked = s.profanityFilterEnabled;
+      document.getElementById('profanityReplaceStyleSelect').value = s.profanityReplaceStyle || 'asterisks';
+      document.getElementById('inputProfanityWords').value = s.profanityWords || '';
+
       // Handle custom fields toggle on startup
       toggleCustomColors(s.theme);
       toggleTtsSubSettings(s.ttsEnabled);
       toggleAudioSettingsRow(s.soundEnabled);
+      toggleProfanitySubSettings(s.profanityFilterEnabled);
     }
   } catch (err) {
     console.error('Failed to load overlay settings:', err);
@@ -387,10 +393,16 @@ function toggleAudioSettingsRow(enabled) {
   row.style.display = enabled ? 'grid' : 'none';
 }
 
+function toggleProfanitySubSettings(enabled) {
+  const container = document.getElementById('profanitySubSettingsContainer');
+  container.style.display = enabled ? 'block' : 'none';
+}
+
 // Watch Selectors
 document.getElementById('themeSelect').onchange = (e) => toggleCustomColors(e.target.value);
 document.getElementById('chkTtsEnabled').onchange = (e) => toggleTtsSubSettings(e.target.checked);
 document.getElementById('chkSoundEnabled').onchange = (e) => toggleAudioSettingsRow(e.target.checked);
+document.getElementById('chkProfanityFilterEnabled').onchange = (e) => toggleProfanitySubSettings(e.target.checked);
 
 // Color picker bindings (Hex inputs <-> Color box picker)
 const colorPickers = [
@@ -441,7 +453,11 @@ document.getElementById('overlaySettingsForm').onsubmit = async (e) => {
 
     messageTemplate: document.getElementById('inputMessageTemplate').value,
     showDonorMessage: document.getElementById('chkShowDonorMessage').checked,
-    minAmount: parseInt(document.getElementById('inputMinAmount').value) || 1
+    minAmount: parseInt(document.getElementById('inputMinAmount').value) || 1,
+    
+    profanityFilterEnabled: document.getElementById('chkProfanityFilterEnabled').checked,
+    profanityWords: document.getElementById('inputProfanityWords').value,
+    profanityReplaceStyle: document.getElementById('profanityReplaceStyleSelect').value
   };
 
   try {

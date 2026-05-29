@@ -367,6 +367,46 @@
                   </div>
                 </div>
 
+                <!-- Card: Profanity Filter Settings -->
+                <div class="dashboard-card settings-card">
+                  <div class="settings-card-header">
+                    <h4>🤬 ระบบกรองคำหยาบคาย (Profanity Filter)</h4>
+                  </div>
+
+                  <div class="form-row flex-align-center">
+                    <div class="form-group">
+                      <div class="switch-group">
+                        <label class="switch">
+                          <input type="checkbox" id="chkProfanityFilterEnabled" checked>
+                          <span class="slider-switch"></span>
+                        </label>
+                        <span class="switch-label">เปิดใช้งานระบบกรองคำหยาบ (Anti-Troll)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="tts-sub-settings" id="profanitySubSettingsContainer">
+                    <div class="form-row">
+                      <div class="form-group full-width">
+                        <label for="profanityReplaceStyleSelect">รูปแบบการเซนเซอร์คำ</label>
+                        <select id="profanityReplaceStyleSelect" class="form-select">
+                          <option value="asterisks">ใช้เครื่องหมายดอกจันเซนเซอร์คำหยาบ (เช่น ค***)</option>
+                          <option value="polite">แปลงเป็นคำน่ารักสุภาพแทน (เช่น รักนะ, สู้ๆ) 🌸</option>
+                          <option value="block">บล็อกข้อความนั้นทั้งหมด (แสดงข้อความถูกกรองโดยระบบ)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group full-width">
+                        <label for="inputProfanityWords">รายการคำหยาบและคำที่ไม่เหมาะสม (คั่นด้วยเครื่องหมายจุลภาค ,)</label>
+                        <textarea id="inputProfanityWords" class="form-control" rows="3" style="font-family: inherit; resize: vertical;"></textarea>
+                        <small class="form-hint">สามารถลบหรือเพิ่มคำหยาบเพิ่มเติมได้เอง หากคำใดตรงกับข้อความจะถูกกรองออกทันที</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Card: Message Settings -->
                 <div class="dashboard-card settings-card">
                   <div class="settings-card-header">

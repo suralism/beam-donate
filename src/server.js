@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
 const beam = require('./beam');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +29,9 @@ const defaultSettings = {
   ttsRate: 1.0,
   ttsLanguage: 'th-TH',
   ttsVoice: 'default',
+  profanityFilterEnabled: true,
+  profanityWords: 'ควย, เย็ด, สัส, เหี้ย, หี, แตด, ล่อ, ดอกทอง, ส้นตีน, อีดอก, อีเหี้ย, พ่อง, แม่มึง, กู, มึง',
+  profanityReplaceStyle: 'asterisks', // asterisks, polite, block
   messageTemplate: '{donor} ได้บริจาค {amount} บาท! 🎉',
   showDonorMessage: true,
   minAmount: 1, // Minimum amount to trigger alert
@@ -350,6 +354,50 @@ app.post('/api/overlay/settings', (req, res) => {
     res.json({ success: true, settings: overlaySettings });
   } catch (error) {
     res.status(500).json({ error: 'ไม่สามารถบันทึกการตั้งค่าได้', details: error.message });
+  }
+});
+
+// API: proxy สำหรับสังเคราะห์เสียงพูดผ่าน Google Translate Cloud TTS (ป้องกัน CORS และ 403 Forbidden ของเบราว์เซอร์)
+app.get('/api/tts', (req, res) => {
+  try {
+    const text = req.query.text;
+    const lang = req.query.lang || 'th';
+
+    if (!text) {
+      return res.status(400).send('Text is required');
+    }
+
+    const encodedText = encodeURIComponent(text);
+    const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodedText}`;
+
+    // ส่ง request ไปยัง Google Translate ด้วย User-Agent เสมือนเบราว์เซอร์เพื่อป้องกัน 403
+    const options = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
+      }
+    };
+
+    https.get(googleTtsUrl, options, (googleRes) => {
+      if (googleRes.statusCode !== 200) {
+        console.error(`Google TTS responded with status ${googleRes.statusCode}`);
+        return res.status(googleRes.statusCode).send('Error generating TTS from cloud');
+      }
+
+      // ส่งคืนหัวไฟล์เสียง mpeg
+      res.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Cache-Control': 'public, max-age=31536000'
+      });
+
+      // Stream ไฟล์เสียงตรงไปยังเบราว์เซอร์ผู้ใช้
+      googleRes.pipe(res);
+    }).on('error', (e) => {
+      console.error('TTS Proxy connection error:', e);
+      res.status(500).send('Proxy connection failed');
+    });
+  } catch (error) {
+    console.error('TTS API error:', error);
+    res.status(500).send('Internal server error');
   }
 });
 

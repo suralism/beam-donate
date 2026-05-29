@@ -8,6 +8,10 @@ let overlaySettings = {
   ttsVolume: 0.8,
   ttsRate: 1.0,
   ttsLanguage: 'th-TH',
+  ttsVoice: 'default',
+  profanityFilterEnabled: true,
+  profanityWords: 'ควย, เย็ด, สัส, เหี้ย, หี, แตด, ล่อ, ดอกทอง, ส้นตีน, อีดอก, อีเหี้ย, พ่อง, แม่มึง, กู, มึง',
+  profanityReplaceStyle: 'asterisks',
   messageTemplate: '{donor} ได้บริจาค {amount} บาท! 🎉',
   showDonorMessage: true,
   minAmount: 1,
@@ -142,6 +146,43 @@ function processQueue() {
 }
 
 // ========== Show Alert Panel ==========
+// ========== Profanity Filter (Anti-Troll) ==========
+function filterProfanity(text) {
+  if (!text || !overlaySettings.profanityFilterEnabled) return text;
+  
+  let censoredText = text;
+  const wordsStr = overlaySettings.profanityWords || '';
+  const words = wordsStr
+    .split(',')
+    .map(w => w.trim())
+    .filter(w => w.length > 0);
+  
+  if (words.length === 0) return text;
+  
+  // 1. บล็อกทั้งข้อความหากมีคำหยาบ (แสดงข้อความถูกกรองโดยระบบ)
+  if (overlaySettings.profanityReplaceStyle === 'block') {
+    const hasProfanity = words.some(w => censoredText.toLowerCase().includes(w.toLowerCase()));
+    if (hasProfanity) {
+      return '[ข้อความไม่เหมาะสม ถูกบล็อกโดยระบบ]';
+    }
+  }
+
+  // 2. เซนเซอร์ด้วยเครื่องหมายดอกจันหรือคำสุภาพน่ารัก
+  words.forEach(word => {
+    const escapedWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(escapedWord, 'gi');
+    
+    if (overlaySettings.profanityReplaceStyle === 'polite') {
+      const politeReplacements = ['รักนะ', 'ชื่นชม', 'สู้ๆ', 'ยินดี', 'ขอบคุณ'];
+      censoredText = censoredText.replace(regex, () => politeReplacements[Math.floor(Math.random() * politeReplacements.length)]);
+    } else {
+      censoredText = censoredText.replace(regex, (match) => '*'.repeat(match.length));
+    }
+  });
+
+  return censoredText;
+}
+
 function showAlert(data) {
   const template = document.getElementById('alertTemplate');
   const clone = template.content.cloneNode(true);
@@ -157,8 +198,13 @@ function showAlert(data) {
     .replace(/{donor}/g, data.donor || 'Anonymous')
     .replace(/{amount}/g, amountFormatted);
   
+  // กรองคำหยาบของหัวข้อ และข้อความส่วนตัวของผู้บริจาค
+  const filteredHeader = filterProfanity(headerText);
+  const filteredMessage = filterProfanity(data.message || '');
+  const filteredDonor = filterProfanity(data.donor || 'Anonymous');
+
   // Set content
-  alertBox.querySelector('.donor-name').textContent = headerText;
+  alertBox.querySelector('.donor-name').textContent = filteredHeader;
   
   // ซ่อนป้าย "บริจาค" หากในเทมเพลตข้อความหลักมีจำนวนเงินหรือคำว่าบริจาคอยู่แล้ว เพื่อป้องกันคำซ้ำซ้อน
   const labelElement = alertBox.querySelector('.alert-label');
@@ -182,7 +228,7 @@ function showAlert(data) {
   // User private message
   const messageElement = alertBox.querySelector('.alert-message');
   if (overlaySettings.showDonorMessage && data.message) {
-    messageElement.textContent = data.message;
+    messageElement.textContent = filteredMessage;
   } else {
     messageElement.textContent = '';
   }
@@ -203,7 +249,8 @@ function showAlert(data) {
 
   // Play Speech Synthesis (TTS) after a small delay
   if (overlaySettings.ttsEnabled) {
-    const speakText = `${data.donor || 'ผู้บริจาค'} บริจาค ${data.amount} บาท. ${data.message ? `ฝากข้อความว่า ${data.message}` : ''}`;
+    // ใช้ตัวที่กรองคำหยาบแล้วทั้งชื่อผู้บริจาค และข้อความส่วนตัว เพื่อส่งไปให้ AI พากย์เสียง
+    const speakText = `${filteredDonor} บริจาค ${data.amount} บาท. ${data.message ? `ฝากข้อความว่า ${filteredMessage}` : ''}`;
     setTimeout(() => {
       speakMessage(speakText, overlaySettings.ttsLanguage, overlaySettings.ttsVolume, overlaySettings.ttsRate, overlaySettings.ttsVoice);
     }, 1200);
@@ -358,25 +405,25 @@ function speakMessage(text, lang = 'th-TH', volume = 0.8, rate = 1.0, voiceName 
       console.log('🗣️ Selected premium Edge TTS voice:', voice.name);
     } else {
       // 2. หากผู้ใช้เลือกเป็น default หรือไม่มีเสียงพรีเมียมตัวนั้นติดตั้งในระบบ (เช่น OBS)
-      // ให้สลับมาใช้ Google Translate Cloud TTS (ภาษาไทยแท้ ทำงานได้ 100% ทุกอุปกรณ์)
+      // ให้สลับมาใช้ระบบ Local Server TTS Proxy (ภาษาไทยแท้ ทำงานได้ 100% ปราศจากปัญหา CORS/403)
       const shortLang = lang.split('-')[0] || 'th';
       const truncatedText = text.substring(0, 180);
       const encodedText = encodeURIComponent(truncatedText);
-      const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${shortLang}&client=tw-ob&q=${encodedText}`;
+      const localTtsUrl = `/api/tts?lang=${shortLang}&text=${encodedText}`;
       
-      console.log(`📣 No local premium voice found. Using Google Translate TTS (${shortLang}):`, truncatedText);
+      console.log(`📣 No local premium voice found. Using local server TTS proxy (${shortLang}):`, truncatedText);
       
-      const audio = new Audio(googleTtsUrl);
+      const audio = new Audio(localTtsUrl);
       audio.volume = Number(volume) || 0.8;
       audio.defaultPlaybackRate = Number(rate) || 1.0;
       audio.playbackRate = Number(rate) || 1.0;
       
       audio.play()
         .then(() => {
-          console.log('🗣️ Google TTS playing successfully:', truncatedText);
+          console.log('🗣️ Local TTS Proxy playing successfully:', truncatedText);
         })
         .catch(err => {
-          console.warn('⚠️ Google TTS autoplay blocked or failed, playing with browser default speech:', err.message);
+          console.warn('⚠️ TTS Proxy autoplay blocked or failed, playing with browser default speech:', err.message);
           // Fallback สุดท้าย: เล่นด้วยเสียงสังเคราะห์ของระบบทั่วไป
           playDefaultWebSpeech(text, lang, volume, rate);
         });

@@ -3,37 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>💝 บริจาค</title>
+  <title>💝 สนับสนุนและบริจาค (Beam Donate)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Glowing Background Blur Orbs -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
   <div class="container">
     <!-- หน้าเลือกจำนวนเงิน -->
     <div id="step-amount" class="step active">
-      <div class="card">
+      <div class="card glass-card">
         <div class="header">
-          <h1>💝 บริจาค</h1>
-          <p class="subtitle">สนับสนุนโปรเจคของเรา</p>
+          <div class="glowing-heart">💝</div>
+          <h1>บริจาคสนับสนุน</h1>
+          <p class="subtitle">ร่วมสนับสนุนและส่งกำลังใจให้พวกเราพัฒนาผลงานต่อไป ✨</p>
         </div>
 
+        <!-- preset amount buttons -->
         <div class="amount-options">
-          <button class="amount-btn" data-amount="50">฿50</button>
-          <button class="amount-btn" data-amount="100">฿100</button>
-          <button class="amount-btn" data-amount="200">฿200</button>
-          <button class="amount-btn" data-amount="500">฿500</button>
+          <button class="amount-btn" data-amount="50">
+            <span class="amount-emoji">☕</span>
+            <span class="amount-val">฿50</span>
+            <span class="amount-desc">ค่าน้ำเก๊กฮวย</span>
+          </button>
+          <button class="amount-btn" data-amount="100">
+            <span class="amount-emoji">🍰</span>
+            <span class="amount-val">฿100</span>
+            <span class="amount-desc">ค่าขนมเค้ก</span>
+          </button>
+          <button class="amount-btn" data-amount="200">
+            <span class="amount-emoji">🍔</span>
+            <span class="amount-val">฿200</span>
+            <span class="amount-desc">ค่าน้ำชาบู</span>
+          </button>
+          <button class="amount-btn" data-amount="500">
+            <span class="amount-emoji">🚀</span>
+            <span class="amount-val">฿500</span>
+            <span class="amount-desc">สนับสนุนเซิร์ฟเวอร์</span>
+          </button>
         </div>
 
         <div class="custom-amount">
-          <label for="customAmount">หรือระบุจำนวนเอง</label>
+          <label for="customAmount">หรือระบุจำนวนเงินด้วยตนเอง</label>
           <div class="input-group">
             <span class="currency">฿</span>
-            <input type="number" id="customAmount" placeholder="0" min="1">
+            <input type="number" id="customAmount" placeholder="ระบุจำนวนเงิน..." min="1">
           </div>
         </div>
 
         <div class="donor-info">
-          <input type="text" id="donorName" placeholder="ชื่อผู้บริจาค (ไม่บังคับ)">
-          <textarea id="donorMessage" placeholder="ข้อความถึงเรา (ไม่บังคับ)" rows="2"></textarea>
+          <label for="donorName">ชื่อผู้บริจาค (จะโชว์บนหน้าจอสตรีม)</label>
+          <input type="text" id="donorName" placeholder="ระบุชื่อของคุณ (เช่น น้องเป็ดใจดี)...">
+          
+          <label for="donorMessage">ข้อความของคุณ (จะถูกอ่านออกเสียงโดย AI)</label>
+          <textarea id="donorMessage" placeholder="ฝากข้อความถึงเราที่นี่..." rows="2"></textarea>
         </div>
 
         <button id="btnDonate" class="btn-primary" disabled>
@@ -42,12 +71,13 @@
       </div>
     </div>
 
-    <!-- หน้าแสดง QR Code -->
+    <!-- หน้าแสดง QR Code (คงไว้สำหรับโค้ด JS ทำงาน แต่สตรีมเมอร์ส่วนใหญ่อาจจะ redirect ไป Beam ทันที) -->
     <div id="step-qr" class="step">
-      <div class="card">
+      <div class="card glass-card">
         <div class="header">
-          <h2>📱 สแกน QR Code</h2>
-          <p class="subtitle">ชำระผ่าน PromptPay</p>
+          <div class="glowing-qr">📱</div>
+          <h2>สแกน QR Code</h2>
+          <p class="subtitle">ชำระผ่าน PromptPay อย่างรวดเร็วและปลอดภัย</p>
         </div>
 
         <div class="qr-container">
@@ -59,15 +89,15 @@
         </div>
 
         <div class="amount-display">
-          <span class="label">จำนวนเงิน</span>
+          <span class="label">ยอดเงินที่ต้องชำระ</span>
           <span id="displayAmount" class="value">฿0</span>
         </div>
 
         <div class="instructions">
-          <p>1. เปิดแอปธนาคารของคุณ</p>
-          <p>2. เลือก "สแกน QR"</p>
-          <p>3. สแกน QR Code ด้านบน</p>
-          <p>4. ยืนยันการชำระเงิน</p>
+          <p><span>1</span> เปิดแอปธนาคารของคุณ</p>
+          <p><span>2</span> เลือกสแกน QR Code</p>
+          <p><span>3</span> สแกนคิวอาร์โค้ดด้านบน</p>
+          <p><span>4</span> กดยืนยันการชำระเงินในแอปธนาคาร</p>
         </div>
 
         <div id="paymentStatus" class="status checking">
@@ -76,7 +106,7 @@
         </div>
 
         <button id="btnBack" class="btn-secondary">
-          ← ย้อนกลับ
+          ← ย้อนกลับไปแก้ไข
         </button>
       </div>
     </div>

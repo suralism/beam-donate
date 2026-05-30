@@ -111,7 +111,7 @@ async function initDB() {
           console.log(`✅ Successfully migrated ${legacyTx.length} legacy transactions to Turso.`);
         }
         
-        if (txFileToMigrate === LEGACY_DB_FILE && process.env.NODE_ENV !== 'production') {
+        if (txFileToMigrate === LEGACY_DB_FILE) {
           try {
             fs.renameSync(LEGACY_DB_FILE, LEGACY_DB_FILE + '.bak');
             console.log(`📁 Renamed legacy transactions.json to transactions.json.bak`);
@@ -280,10 +280,8 @@ async function saveTransaction(data) {
     }
  
     try {
-      if (process.env.NODE_ENV !== 'production') {
-        const DB_DIR = path.join(__dirname, '../data');
-        fs.writeFileSync(path.join(DB_DIR, 'transactions.json'), JSON.stringify(memoryTransactions, null, 2));
-      }
+      const DB_DIR = path.join(__dirname, '../data');
+      fs.writeFileSync(path.join(DB_DIR, 'transactions.json'), JSON.stringify(memoryTransactions, null, 2));
     } catch (e) {}
  
     return updatedTx;
@@ -403,10 +401,8 @@ async function saveSettings(settings) {
   if (isFallback) {
     memorySettings = settings;
     try {
-      if (process.env.NODE_ENV !== 'production') {
-        const DB_DIR = path.join(__dirname, '../data');
-        fs.writeFileSync(path.join(DB_DIR, 'overlay-settings.json'), JSON.stringify(memorySettings, null, 2));
-      }
+      const DB_DIR = path.join(__dirname, '../data');
+      fs.writeFileSync(path.join(DB_DIR, 'overlay-settings.json'), JSON.stringify(memorySettings, null, 2));
     } catch (e) {}
     return settings;
   }

@@ -489,14 +489,10 @@ app.get('/admin', ensureAuthenticated, (req, res) => {
 });
 
 // Start server
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`🌸 Stream Donation server running at http://localhost:${PORT}`);
-    console.log(`📋 Environment: ${process.env.BEAM_ENV || 'sandbox'}`);
-    console.log(`🎬 Overlay URL: http://localhost:${PORT}/overlay`);
-    console.log(`🧪 Alert Test: http://localhost:${PORT}/alert-test`);
-    console.log(`📊 Admin Panel: http://localhost:${PORT}/admin`);
-  });
-}
-
-module.exports = app;
+app.listen(PORT, () => {
+  console.log(`🌸 Stream Donation server running at http://localhost:${PORT}`);
+  console.log(`📋 Environment: ${process.env.BEAM_ENV || 'sandbox'}`);
+  console.log(`🎬 Overlay URL: http://localhost:${PORT}/overlay`);
+  console.log(`🧪 Alert Test: http://localhost:${PORT}/alert-test`);
+  console.log(`📊 Admin Panel: http://localhost:${PORT}/admin`);
+});

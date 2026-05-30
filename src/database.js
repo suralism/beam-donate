@@ -79,7 +79,7 @@ async function initDB() {
       if (fs.existsSync(LEGACY_SETTINGS_FILE)) settingsFileToMigrate = LEGACY_SETTINGS_FILE;
       else if (fs.existsSync(LEGACY_SETTINGS_FILE + '.bak')) settingsFileToMigrate = LEGACY_SETTINGS_FILE + '.bak';
 
-      // Migrate Transactions if Turso is empty
+// Migrate Transactions if Turso is empty
       if (isTxEmpty && txFileToMigrate) {
         console.log(`📦 Legacy transactions file found (${path.basename(txFileToMigrate)}). Migrating to Turso DB...`);
         const fileContent = fs.readFileSync(txFileToMigrate, 'utf8');
@@ -111,13 +111,14 @@ async function initDB() {
           console.log(`✅ Successfully migrated ${legacyTx.length} legacy transactions to Turso.`);
         }
         
-        if (txFileToMigrate === LEGACY_DB_FILE) {
+        if (txFileToMigrate === LEGACY_DB_FILE && process.env.NODE_ENV !== 'production') {
           try {
             fs.renameSync(LEGACY_DB_FILE, LEGACY_DB_FILE + '.bak');
             console.log(`📁 Renamed legacy transactions.json to transactions.json.bak`);
           } catch (e) {}
         }
       }
+
 
       // Migrate Settings if Turso is empty
       if (isSettingsEmpty && settingsFileToMigrate) {
@@ -277,12 +278,14 @@ async function saveTransaction(data) {
       };
       memoryTransactions.push(updatedTx);
     }
-
+ 
     try {
-      const DB_DIR = path.join(__dirname, '../data');
-      fs.writeFileSync(path.join(DB_DIR, 'transactions.json'), JSON.stringify(memoryTransactions, null, 2));
+      if (process.env.NODE_ENV !== 'production') {
+        const DB_DIR = path.join(__dirname, '../data');
+        fs.writeFileSync(path.join(DB_DIR, 'transactions.json'), JSON.stringify(memoryTransactions, null, 2));
+      }
     } catch (e) {}
-
+ 
     return updatedTx;
   }
 
@@ -400,8 +403,10 @@ async function saveSettings(settings) {
   if (isFallback) {
     memorySettings = settings;
     try {
-      const DB_DIR = path.join(__dirname, '../data');
-      fs.writeFileSync(path.join(DB_DIR, 'overlay-settings.json'), JSON.stringify(memorySettings, null, 2));
+      if (process.env.NODE_ENV !== 'production') {
+        const DB_DIR = path.join(__dirname, '../data');
+        fs.writeFileSync(path.join(DB_DIR, 'overlay-settings.json'), JSON.stringify(memorySettings, null, 2));
+      }
     } catch (e) {}
     return settings;
   }

@@ -331,6 +331,7 @@ async function loadOverlaySettings() {
 
       // TTS Checkboxes
       document.getElementById('chkTtsEnabled').checked = s.ttsEnabled;
+      document.getElementById('chkTtsReadDonor').checked = s.ttsReadDonor !== undefined ? s.ttsReadDonor : true;
       savedVoiceName = s.ttsVoice || 'default';
       populateVoiceList(); // Re-populate with saved value
       document.getElementById('sliderTtsVolume').value = s.ttsVolume;
@@ -340,6 +341,8 @@ async function loadOverlaySettings() {
 
       // Template Strings
       document.getElementById('inputMessageTemplate').value = s.messageTemplate;
+      document.getElementById('inputAmountSuffix').value = s.amountSuffix || 'บาท';
+      document.getElementById('chkShowLabel').checked = s.showLabel !== undefined ? s.showLabel : true;
       document.getElementById('chkShowDonorMessage').checked = s.showDonorMessage;
       document.getElementById('inputMinAmount').value = s.minAmount;
 
@@ -453,12 +456,15 @@ document.getElementById('overlaySettingsForm').onsubmit = async (e) => {
     soundVolume: parseFloat(document.getElementById('sliderSoundVolume').value),
     
     ttsEnabled: document.getElementById('chkTtsEnabled').checked,
+    ttsReadDonor: document.getElementById('chkTtsReadDonor').checked,
     ttsLanguage: 'th-TH',
     ttsVoice: document.getElementById('ttsVoiceSelect').value,
     ttsVolume: parseFloat(document.getElementById('sliderTtsVolume').value),
     ttsRate: parseFloat(document.getElementById('sliderTtsRate').value),
 
     messageTemplate: document.getElementById('inputMessageTemplate').value,
+    amountSuffix: document.getElementById('inputAmountSuffix').value,
+    showLabel: document.getElementById('chkShowLabel').checked,
     showDonorMessage: document.getElementById('chkShowDonorMessage').checked,
     minAmount: parseInt(document.getElementById('inputMinAmount').value) || 1,
     

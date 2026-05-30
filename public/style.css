@@ -162,9 +162,21 @@ body {
   animation: pulseGlow 2.5s infinite ease-in-out;
 }
 
+.glowing-avatar {
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 15px;
+  border: 3px solid rgba(0, 141, 24, 0.5);
+  filter: drop-shadow(0 0 12px rgba(0, 255, 55, 0.6));
+  animation: pulseGlow 5.5s infinite ease-in-out;
+}
+
 @keyframes pulseGlow {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.5)); }
-  50% { transform: scale(1.08); filter: drop-shadow(0 0 20px rgba(236, 72, 153, 0.8)); }
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px rgba(71, 255, 15, 0.5)); }
+  50% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(5, 63, 15, 0.418)); }
 }
 
 .header h1, .header h2 {
@@ -176,6 +188,46 @@ body {
   background: linear-gradient(90deg, #ffffff, #d8b4fe);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Social Buttons Grid */
+.social-links-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #ffffff;
+  transition: var(--transition-smooth);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+}
+
+.social-btn i {
+  font-size: 16px;
+}
+
+.social-btn.twitch { background: rgba(146, 65, 165, 0.4); border-color: rgba(146, 65, 165, 0.6); }
+.social-btn.youtube { background: rgba(255, 0, 0, 0.4); border-color: rgba(255, 0, 0, 0.6); }
+.social-btn.discord { background: rgba(88, 101, 242, 0.4); border-color: rgba(88, 101, 242, 0.6); }
+.social-btn.facebook { background: rgba(24, 119, 242, 0.4); border-color: rgba(24, 119, 242, 0.6); }
+.social-btn.tiktok { background: rgba(0, 0, 0, 0.6); border-color: rgba(255, 255, 255, 0.2); }
+
+.social-btn:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.2);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .subtitle {

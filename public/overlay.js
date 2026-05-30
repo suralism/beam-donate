@@ -22,9 +22,9 @@ let overlaySettings = {
   secondaryColor: '#764ba2',
   backgroundColor: 'rgba(15, 15, 25, 0.88)',
   textColor: '#ffffff',
-  borderColor: 'rgba(255, 255, 255, 0.25)',
+  borderColor: 'rgba(255, 255, 255, 0.05)',
   particleCount: 15,
-  fontSize: 32
+  fontSize: 48
 };
 
 // ========== Queue System ==========
@@ -185,34 +185,40 @@ function filterProfanity(text) {
   return censoredText;
 }
 
-function showAlert(data) {
+async function showAlert(data) {
   const template = document.getElementById('alertTemplate');
   const clone = template.content.cloneNode(true);
   const alertBox = clone.querySelector('.alert-box');
+
 
   // Apply Theme and Animation classes
   alertBox.classList.add(`theme-${overlaySettings.theme}`);
   alertBox.classList.add(`anim-${overlaySettings.animation}`);
 
-  // Format header text using template
-  const amountFormatted = Number(data.amount).toLocaleString('th-TH', { minimumFractionDigits: 0 });
-  let headerText = overlaySettings.messageTemplate
-    .replace(/{donor}/g, data.donor || 'Anonymous')
-    .replace(/{amount}/g, amountFormatted);
+    // Format header text using template
+    const amountFormatted = Number(data.amount).toLocaleString('th-TH', { minimumFractionDigits: 0 });
+    
+    // สร้าง HTML สำหรับ Header โดยให้ไฮไลท์เฉพาะชื่อผู้บริจาค (ตามที่ผู้ใช้แจ้งให้แก้ส่วนจำนวนเงินกลับ)
+    const headerHtml = overlaySettings.messageTemplate
+      .replace(/{donor}/g, `<span class="highlight-donor">${data.donor || 'Anonymous'}</span>`)
+      .replace(/{amount}/g, amountFormatted);
   
-  // กรองคำหยาบของหัวข้อ และข้อความส่วนตัวของผู้บริจาค
-  const filteredHeader = filterProfanity(headerText);
-  const filteredMessage = filterProfanity(data.message || '');
-  const filteredDonor = filterProfanity(data.donor || 'Anonymous');
+    // กรองคำหยาบของหัวข้อ และข้อความส่วนตัวของผู้บริจาค
+    const filteredHeader = filterProfanity(headerHtml);
+    const filteredMessage = filterProfanity(data.message || '');
+    const filteredDonor = filterProfanity(data.donor || 'Anonymous');
+  
+    // Set content
+    alertBox.querySelector('.donor-name').innerHTML = filteredHeader;
 
-  // Set content
-  alertBox.querySelector('.donor-name').textContent = filteredHeader;
+
   
-  // ซ่อนป้าย "บริจาค" หากในเทมเพลตข้อความหลักมีจำนวนเงินหรือคำว่าบริจาคอยู่แล้ว เพื่อป้องกันคำซ้ำซ้อน
+  // ซ่อนป้าย "บริจาค" ตามการตั้งค่า หรือหากในเทมเพลตข้อความหลักมีจำนวนเงินหรือคำว่าบริจาคอยู่แล้ว
   const labelElement = alertBox.querySelector('.alert-label');
   if (labelElement) {
+    const showLabelSetting = overlaySettings.showLabel !== undefined ? overlaySettings.showLabel : true;
     const tempLower = overlaySettings.messageTemplate.toLowerCase();
-    if (tempLower.includes('{amount}') || tempLower.includes('บริจาค') || tempLower.includes('donate')) {
+    if (!showLabelSetting || tempLower.includes('{amount}') || tempLower.includes('บริจาค') || tempLower.includes('donate')) {
       labelElement.style.display = 'none';
     } else {
       labelElement.style.display = 'inline-block';
@@ -225,7 +231,8 @@ function showAlert(data) {
   }
 
   // Adjust amount display (large font is standard, but since template might have it, let's keep it clean)
-  alertBox.querySelector('.alert-amount').textContent = `฿${amountFormatted}`;
+  const amountSuffix = overlaySettings.amountSuffix || 'บาท';
+  alertBox.querySelector('.alert-amount').innerHTML = `<span class="highlight-amount shine-effect">${amountFormatted}</span> ${amountSuffix}</span>`;
 
   // User private message
   const messageElement = alertBox.querySelector('.alert-message');
@@ -244,26 +251,42 @@ function showAlert(data) {
   const container = document.getElementById('alertContainer');
   container.appendChild(alertBox);
 
+  // Spawn visual particles immediately
+  setTimeout(() => spawnParticles(alertBox, overlaySettings.particleCount), 300);
+
   // Play Alert Audio Notification
   if (overlaySettings.soundEnabled) {
-    playNotificationSound(overlaySettings.soundChoice, overlaySettings.soundVolume);
+    await playNotificationSound(overlaySettings.soundChoice, overlaySettings.soundVolume);
   }
 
-  // Play Speech Synthesis (TTS) after a small delay
-  if (overlaySettings.ttsEnabled) {
-    // ใช้ตัวที่กรองคำหยาบแล้วทั้งชื่อผู้บริจาค และข้อความส่วนตัว เพื่อส่งไปให้ AI พากย์เสียง
-    const speakText = `${filteredDonor} บริจาค ${data.amount} บาท. ${data.message ? `ฝากข้อความว่า ${filteredMessage}` : ''}`;
-    setTimeout(() => {
-      speakMessage(speakText, overlaySettings.ttsLanguage, overlaySettings.ttsVolume, overlaySettings.ttsRate, overlaySettings.ttsVoice);
-    }, 1200);
-  }
+    // Play Speech Synthesis (TTS) after a small delay
+    if (overlaySettings.ttsEnabled) {
+      let speakText = '';
+      if (overlaySettings.ttsReadDonor) {
+        // ลบ HTML tags ออกจาก filteredHeader ก่อนส่งไปอ่านออกเสียง
+        const cleanHeader = filteredHeader.replace(/<[^>]*>/g, '');
+        const amountSuffix = overlaySettings.amountSuffix || 'บาท';
+        // ใช้เฉพาะส่วนก่อนหน้าจำนวนเงินจาก template แล้วต่อด้วย amountFormatted และ amountSuffix เพื่อป้องกันคำซ้ำซ้อน
+        const headerPrefix = cleanHeader.split(amountFormatted)[0];
+        speakText = `${headerPrefix}${amountFormatted} ${amountSuffix}${data.message ? `. ฝากข้อความว่า ${filteredMessage}` : ''}`;
+      } else {
+        // อ่านเฉพาะข้อความผู้บริจาคเพียงอย่างเดียว
+        speakText = filteredMessage;
+      }
 
-  // Spawn visual particles
-  setTimeout(() => spawnParticles(alertBox, overlaySettings.particleCount), 300);
+      // หากมีข้อความให้พูด จึงจะส่งไปที่ Speech Engine
+      if (speakText && speakText.trim() !== '') {
+        setTimeout(() => {
+          speakMessage(speakText, overlaySettings.ttsLanguage, overlaySettings.ttsVolume, overlaySettings.ttsRate, overlaySettings.ttsVoice);
+        }, 200);
+      }
+    }
 
   // Auto remove alert after duration
   setTimeout(() => {
     alertBox.classList.add('exit');
+
+
 
     setTimeout(() => {
       alertBox.remove();
@@ -276,20 +299,32 @@ function showAlert(data) {
 // ========== Web Audio API Notification Synthesizer ==========
 let audioCtx = null;
 
-function playNotificationSound(soundChoice, volume) {
+async function playNotificationSound(soundChoice, volume) {
   try {
-    if (soundChoice === 'none') return;
+    if (soundChoice === 'none') return Promise.resolve();
     
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-
+    
     const now = audioCtx.currentTime;
     
     // Create master gain control
     const masterGain = audioCtx.createGain();
     masterGain.gain.setValueAtTime(Number(volume) || 0.5, now);
     masterGain.connect(audioCtx.destination);
+
+    if (soundChoice === 'custom') {
+      return new Promise((resolve) => {
+        const audio = new Audio('/my-sound.mp3');
+        audio.volume = Number(volume) || 0.5;
+        audio.onended = resolve;
+        audio.play().catch(err => {
+          console.warn('Custom sound playback failed:', err);
+          resolve();
+        });
+      });
+    }
 
     if (soundChoice === 'chime') {
       // 3-note classic chime (D5 -> A5 -> D6)
@@ -316,6 +351,7 @@ function playNotificationSound(soundChoice, volume) {
         osc.start(now + note.start);
         osc.stop(now + note.start + note.duration + 0.05);
       });
+      return new Promise(resolve => setTimeout(resolve, 700));
     } 
     else if (soundChoice === 'retro') {
       // 8-bit Arcade coin jump sound (Quick rising pitch)
@@ -334,6 +370,7 @@ function playNotificationSound(soundChoice, volume) {
       
       osc.start(now);
       osc.stop(now + 0.3);
+      return new Promise(resolve => setTimeout(resolve, 400));
     } 
     else if (soundChoice === 'modern') {
       // Warm modern synthesizer pad chord
@@ -357,6 +394,7 @@ function playNotificationSound(soundChoice, volume) {
         osc.start(now);
         osc.stop(now + 1.0);
       });
+      return new Promise(resolve => setTimeout(resolve, 1100));
     } 
     else if (soundChoice === 'bell') {
       // Soft high bell chime (Crystal resonance)
@@ -375,9 +413,12 @@ function playNotificationSound(soundChoice, volume) {
       
       osc.start(now);
       osc.stop(now + 0.9);
+      return new Promise(resolve => setTimeout(resolve, 1000));
     }
+    return Promise.resolve();
   } catch (err) {
     console.warn('Audio synthesis failed:', err);
+    return Promise.resolve();
   }
 }
 
@@ -491,13 +532,13 @@ function spawnParticles(alertBox, particleCount = 12) {
 
     particle.style.left = `${x}px`;
     particle.style.top = `${y}px`;
-    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
     particle.style.setProperty('--tx', `${tx}px`);
     particle.style.setProperty('--ty', `${ty}px`);
     
-    const size = 4 + Math.random() * 5;
+    const size = 6 + Math.random() * 4;
     particle.style.width = `${size}px`;
     particle.style.height = `${size}px`;
+
 
     document.body.appendChild(particle);
     setTimeout(() => particle.remove(), 1000);

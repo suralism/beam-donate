@@ -6,6 +6,9 @@ const crypto = require('crypto');
 const fs = require('fs');
 const beam = require('./beam');
 const https = require('https');
+const session = require('express-session');
+const passport = require('passport');
+const TwitchStrategy = require('passport-twitch-new').Strategy;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,6 +71,38 @@ async function logTransaction(data) {
 
 // Middleware
 app.use(cors());
+
+// Session Configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'twitch-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // Set to true if using HTTPS
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport Twitch Strategy
+passport.use(new TwitchStrategy({
+    clientID: process.env.TWITCH_CLIENT_ID,
+    clientSecret: process.env.TWITCH_CLIENT_SECRET,
+    callbackURL: process.env.TWITCH_CALLBACK_URL,
+    scope: 'user:read:email'
+  },
+  (accessToken, refreshToken, profile, done) => {
+    return done(null, profile);
+  }
+));
+
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((obj, done) => {
+  done(null, obj);
+});
+
 // สำคัญ: ต้องเก็บ rawBody ไว้ verify webhook signature
 app.use(express.json({
   verify: (req, res, buf) => {
@@ -408,8 +443,48 @@ app.get('/alert-test', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/alert-test.html'));
 });
 
+// Authentication Middleware
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    const user = req.user;
+    
+    // พิมพ์โครงสร้างข้อมูลทั้งหมดของ user ออกมาดูใน Terminal เพื่อตรวจดูว่าชื่อซ่อนอยู่ที่ไหน
+    console.log('[Debug Login User Data]:', JSON.stringify(user, null, 2));
+
+    // ดึงค่าเผื่อไว้ทุกกล่องที่ Twitch API มักจะส่งมา
+    const twitchName = user.username || user.nickname || user.display_name || (user._json && user._json.display_name);
+    const allowedName = process.env.ALLOWED_TWITCH_USERNAME;
+
+    if (twitchName && allowedName && twitchName.toLowerCase() === allowedName.toLowerCase()) {
+      return next();
+    } else {
+      console.log(`[Auth Denied] Twitch sent: ${twitchName}, Expected in .env: ${allowedName}`);
+      return res.status(403).send('Forbidden: You are not authorized to access this page.');
+    }
+  }
+  res.redirect('/login');
+}
+
+// Auth Routes
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/login.html'));
+});
+
+app.get('/auth/twitch', passport.authenticate('twitch'));
+
+app.get('/auth/twitch/callback', 
+  passport.authenticate('twitch', { failureRedirect: '/login-failed' }),
+  (req, res) => {
+    res.redirect('/admin');
+  }
+);
+
+app.get('/login-failed', (req, res) => {
+  res.send('Authentication failed. Please try again.');
+});
+
 // Serve admin page
-app.get('/admin', (req, res) => {
+app.get('/admin', ensureAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 

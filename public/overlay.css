@@ -42,8 +42,43 @@ body {
 
 /* Theme: Glassmorphism (Default) */
 .alert-box.theme-glassmorphism {
+  border-radius: 25px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.336);
+}
+
+/* Text Outline / Stroke for Glassmorphism Theme */
+.alert-box.theme-glassmorphism .alert-info * {
+  -webkit-text-stroke: 1px #000000;
+  text-stroke: 1px #000000;
+  paint-order: stroke fill;
+}
+
+.alert-box.theme-glassmorphism::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   border-radius: 18px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  padding: 2px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), #f093fb, var(--primary-color));
+  background-size: 300% 300%;
+  animation: gradientShift 3s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 1;
+}
+
+/* Theme: Glassmorphism (Default) */
+.alert-box.theme-glassmorphism {
+  border-radius: 10px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.336);
+}
+
+/* Text Outline / Stroke for Glassmorphism Theme */
+.alert-box.theme-glassmorphism .alert-info * {
+  -webkit-text-stroke: 1px #000000;
+  text-stroke: 1px #000000;
+  paint-order: stroke fill;
 }
 
 .alert-box.theme-glassmorphism::before {
@@ -62,11 +97,39 @@ body {
 }
 
 .alert-box.theme-glassmorphism .alert-content {
-  background: rgba(15, 15, 25, 0.88);
+  background: rgba(15, 15, 25, 0.123);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 18px;
   color: #ffffff;
+}
+
+/* Highlight Styles */
+.highlight-donor {
+  color: #fde047; /* Yellow color for donor */
+  font-size: 1.3em;
+  font-weight: 800;
+}
+
+.highlight-amount {
+  background: linear-gradient(90deg, #4ade80 0%, #ffffff 50%, #4ade80 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  width: fit-content;
+  animation: shineText 3s linear infinite;
+  font-size: 1.4em; /* เพิ่มขนาดให้ใหญ่ขึ้นกว่าตัวอักษรปกติในบรรทัด */
+  line-height: 1;
+}
+
+@keyframes shineText {
+  0% { background-position: 200% center; }
+  100% { background-position: 0% center; }
 }
 
 .alert-box.theme-glassmorphism .alert-glow {
@@ -246,9 +309,12 @@ body {
 }
 
 .icon-emoji {
-  font-size: 36px;
-  z-index: 2;
-  animation: iconBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
+  width: 140%;
+  height: 140%;
+  border-radius: 30%;
+  object-fit: contain;
+  z-index: 5;
+  animation: fadeInOnly 0.5s ease-out forwards;
 }
 
 .icon-ring {
@@ -274,7 +340,7 @@ body {
 }
 
 .donor-name {
-  font-size: 15px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -292,10 +358,14 @@ body {
   font-weight: 800;
   line-height: 1.2;
   animation: amountReveal 0.5s ease-out 0.2s both;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 4px;
 }
 
 .alert-message {
-  font-size: 14px;
+  font-size: 17px;
   margin-top: 4px;
   line-height: 1.4;
   max-height: 2.8em;
@@ -446,12 +516,15 @@ body {
 /* ========== Particles ========== */
 .particle {
   position: absolute;
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   pointer-events: none;
   z-index: 10;
-  animation: particleFly 1s ease-out forwards;
+  animation: particleFly 2s ease-out forwards;
+  background: radial-gradient(circle at 30% 30%, #ffd700, #b8860b);
+  border: 1px solid #daa520;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 @keyframes particleFly {

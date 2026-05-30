@@ -12,7 +12,7 @@
     <!-- Sidebar Navigation -->
     <aside class="admin-sidebar">
       <div class="brand">
-        <div class="brand-logo">💝</div>
+        <div class="brand-logo">😺</div>
         <div class="brand-text">
           <h2>Stream Donation</h2>
           <span>Admin Controls</span>
@@ -321,12 +321,13 @@
                   <div class="form-row" id="soundVolumeSettingsRow">
                     <div class="form-group">
                       <label for="soundChoiceSelect">เลือกเสียงแจ้งเตือน</label>
-                      <select id="soundChoiceSelect" class="form-select">
-                        <option value="chime">Classic Chime (เสียงเคาะระฆังคู่ใสๆ)</option>
-                        <option value="retro">Retro Arcade (เสียงสล๊อตแมชชีน 8-bit)</option>
-                        <option value="modern">Modern Pad Synth (เสียงซินธ์อุ่นๆ ทันสมัย)</option>
-                        <option value="bell">Soft Bell Resonator (เสียงกระดิ่งคริสตัลคู่)</option>
-                      </select>
+<select id="soundChoiceSelect" class="form-select">
+                         <option value="chime">Classic Chime (เสียงเคาะระฆังคู่ใสๆ)</option>
+                         <option value="retro">Retro Arcade (เสียงสล๊อตแมชชีน 8-bit)</option>
+                         <option value="modern">Modern Pad Synth (เสียงซินธ์อุ่นๆ ทันสมัย)</option>
+                         <option value="bell">Soft Bell Resonator (เสียงกระดิ่งคริสตัลคู่)</option>
+                         <option value="custom">Custom Sound (my-sound.mp3)</option>
+                       </select>
                     </div>
 
                     <div class="form-group">
@@ -336,19 +337,26 @@
                   </div>
 
                   <h5 class="section-divider">ระบบ AI อ่านออกเสียง (Text-to-Speech)</h5>
-
-                  <div class="form-row flex-align-center">
-                    <div class="form-group">
-                      <div class="switch-group">
-                        <label class="switch">
-                          <input type="checkbox" id="chkTtsEnabled">
-                          <span class="slider-switch"></span>
-                        </label>
-                        <span class="switch-label">💡 เปิดอ่านข้อความบริจาคอัตโนมัติ (TTS)</span>
-                      </div>
-                    </div>
-                  </div>
-
+<div class="form-row flex-align-center">
+  <div class="form-group">
+    <div class="switch-group">
+      <label class="switch">
+        <input type="checkbox" id="chkTtsEnabled">
+        <span class="slider-switch"></span>
+      </label>
+      <span class="switch-label">💡 เปิดอ่านข้อความบริจาคอัตโนมัติ (TTS)</span>
+    </div>
+  </div>
+  <div class="form-group">
+    <div class="switch-group">
+      <label class="switch">
+        <input type="checkbox" id="chkTtsReadDonor" checked>
+        <span class="slider-switch"></span>
+      </label>
+      <span class="switch-label">💡 เปิดอ่านชื่อผู้บริจาคและจำนวนบริจาค</span>
+    </div>
+  </div>
+</div>
                   <div class="tts-sub-settings" id="ttsSubSettingsContainer">
                     <div class="form-row">
                       <div class="form-group">
@@ -428,19 +436,35 @@
                       <input type="text" id="inputMessageTemplate" class="form-control" value="{donor} ได้บริจาค {amount} บาท! 🎉">
                       <small class="form-hint">ใช้ <code>{donor}</code> แทนชื่อผู้บริจาค และ <code>{amount}</code> แทนจำนวนเงิน</small>
                     </div>
-                  </div>
-
-                  <div class="form-row flex-align-center">
-                    <div class="form-group">
-                      <div class="switch-group">
-                        <label class="switch">
-                          <input type="checkbox" id="chkShowDonorMessage" checked>
-                          <span class="slider-switch"></span>
-                        </label>
-                        <span class="switch-label">แสดงข้อความแนบของผู้บริจาคด้านล่างตัวเลข</span>
-                      </div>
+                    <div class="form-group full-width">
+                      <label for="inputAmountSuffix">ระบุสกุลเงิน หรือข้อความต่อท้ายจำนวนเงิน</label>
+                      <input type="text" id="inputAmountSuffix" class="form-control" placeholder="เช่น บาท, USD, Points" value="บาท">
+                      <small class="form-hint">ข้อความนี้จะปรากฏต่อท้ายจำนวนเงินในกล่องแจ้งเตือน (เช่น 100 บาท)</small>
                     </div>
                   </div>
+
+                    <div class="form-row flex-align-center">
+                      <div class="form-group">
+                        <div class="switch-group">
+                          <label class="switch">
+                            <input type="checkbox" id="chkShowLabel" checked>
+                            <span class="slider-switch"></span>
+                          </label>
+                          <span class="switch-label">แสดงป้าย "บริจาค" (Show Donate Label)</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="form-row flex-align-center">
+                      <div class="form-group">
+                        <div class="switch-group">
+                          <label class="switch">
+                            <input type="checkbox" id="chkShowDonorMessage" checked>
+                            <span class="slider-switch"></span>
+                          </label>
+                          <span class="switch-label">แสดงข้อความแนบของผู้บริจาคด้านล่างตัวเลข</span>
+                        </div>
+                      </div>
+                    </div>
 
                   <div class="form-row">
                     <div class="form-group full-width">

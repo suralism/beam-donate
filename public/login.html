@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌸 Login - Stream Donation Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Kanit', 'Noto Sans Thai', sans-serif;
+      background: #0f0f19;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2rem;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      max-width: 400px;
+      width: 90%;
+    }
+    .login-card h1 {
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    .login-card p {
+      color: #a0a0b8;
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+    .btn-twitch {
+      background: #6441a5;
+      color: white;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.3s;
+    }
+    .btn-twitch:hover {
+      background: #7d5bbe;
+    }
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="logo">😺</div>
+    <h1>Admin Access</h1>
+    <p>เอ๊ะ?? คุณไม่ได้รับอนุญาตให้เข้าถึงหน้านี้นะครับ ขออภัยที่มันเดาง่ายจนทำให้คุณหลงเข้ามา🙇‍♂️</p>
+    <a href="/auth/twitch" class="social-btn twitch btn-twitch">
+      <i class="fa-brands fa-twitch"></i>
+      <span>Login with Twitch</span>
+    </a>
+  </div>
+</body>
+</html>

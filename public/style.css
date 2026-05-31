@@ -190,78 +190,45 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-/* Social Buttons Layout */
-.social-links-wrapper {
+/* Social Buttons Grid */
+.social-links-grid {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
-.social-featured-row {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  justify-content: center;
-}
-
-.social-sub-row {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
 .social-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
   text-decoration: none;
   color: #ffffff;
   transition: var(--transition-smooth);
-  backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
 }
 
-/* Featured Buttons (TikTok & YouTube) */
-.social-btn[class*='-featured'] {
-  flex: 1;
-  max-width: 100px;
-  padding: 10px 15px;
-  border-radius: var(--border-radius-md);
-  font-size: 14px;
-  font-weight: 600;
-  gap: 10px;
+.social-btn i {
+  font-size: 16px;
 }
 
-.tiktok-featured {
-  background: rgba(0, 0, 0, 0.6);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.youtube-featured {
-  background: rgba(255, 0, 0, 0.4);
-  border-color: rgba(255, 0, 0, 0.6);
-}
-
-/* Sub Buttons (Twitch, Discord, Facebook) */
-.social-btn[class*='-sub'] {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  font-size: 22px;
-}
-
-.twitch-sub { background: rgba(146, 65, 165, 0.4); border-color: rgba(146, 65, 165, 0.6); }
-.discord-sub { background: rgba(88, 101, 242, 0.4); border-color: rgba(88, 101, 242, 0.6); }
-.facebook-sub { background: rgba(24, 119, 242, 0.4); border-color: rgba(24, 119, 242, 0.6); }
+.social-btn.twitch { background: rgba(146, 65, 165, 0.4); border-color: rgba(146, 65, 165, 0.6); }
+.social-btn.youtube { background: rgba(255, 0, 0, 0.4); border-color: rgba(255, 0, 0, 0.6); }
+.social-btn.discord { background: rgba(88, 101, 242, 0.4); border-color: rgba(88, 101, 242, 0.6); }
+.social-btn.facebook { background: rgba(24, 119, 242, 0.4); border-color: rgba(24, 119, 242, 0.6); }
+.social-btn.tiktok { background: rgba(0, 0, 0, 0.6); border-color: rgba(255, 255, 255, 0.2); }
 
 .social-btn:hover {
   transform: translateY(-3px);
   filter: brightness(1.2);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
-
 
 .subtitle {
   color: var(--text-muted);

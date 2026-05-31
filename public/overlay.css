@@ -49,7 +49,6 @@ body {
 /* Text Outline / Stroke for Glassmorphism Theme */
 .alert-box.theme-glassmorphism .alert-info * {
   -webkit-text-stroke: 1px #000000;
-  text-stroke: 1px #000000;
   paint-order: stroke fill;
 }
 
@@ -57,35 +56,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 18px;
-  padding: 2px;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), #f093fb, var(--primary-color));
-  background-size: 300% 300%;
-  animation: gradientShift 3s ease infinite;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  z-index: 1;
-}
-
-/* Theme: Glassmorphism (Default) */
-.alert-box.theme-glassmorphism {
-  border-radius: 10px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.336);
-}
-
-/* Text Outline / Stroke for Glassmorphism Theme */
-.alert-box.theme-glassmorphism .alert-info * {
-  -webkit-text-stroke: 1px #000000;
-  text-stroke: 1px #000000;
-  paint-order: stroke fill;
-}
-
-.alert-box.theme-glassmorphism::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 18px;
+  border-radius: 25px;
   padding: 2px;
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), #f093fb, var(--primary-color));
   background-size: 300% 300%;

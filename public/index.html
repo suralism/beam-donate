@@ -32,7 +32,7 @@
     <a href="https://youtube.com/@kaminkub" target="_blank" class="social-btn youtube">
       <i class="fa-brands fa-youtube"></i>
     </a>
-    <a href="https://discord.gg/yourlink" target="_blank" class="social-btn discord">
+    <a href="https://discord.gg/RfxgxrAEvn" target="_blank" class="social-btn discord">
       <i class="fa-brands fa-discord"></i>
     </a>
     <a href="https://www.facebook.com/LodastGamer" target="_blank" class="social-btn facebook">
@@ -41,12 +41,17 @@
     <a href="https://www.tiktok.com/@KaminKub" target="_blank" class="social-btn tiktok">
       <i class="fa-brands fa-tiktok"></i>
     </a>
-  </div>
-  <p class="subtitle">ขอบคุณที่หลงเข้ามาหน้าเลี้ยงกาแฟนี้</p>
-  <p class="subtitle">ทุกการสนับสนุนคือกำลังใจที่มีค่าสำหรับผม✨</p>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <p class="subtitle">ขอบคุณที่หลงเข้ามาหน้าเลี้ยงกาแฟนี้</p>
+        <p class="subtitle">ทุกการสนับสนุนคือกำลังใจที่มีค่าสำหรับผม✨</p>
+    </button>
+      <button id="statusBtn" class="status-btn">
+        <div id="statusDot" class="status-dot"></div>
+        <span id="statusText">ตรวจสอบสถานะ...</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
+    </div>
 </div>
-
-
         <!-- preset amount buttons -->
         <div class="amount-options">
           <button class="amount-btn" data-amount="5">
@@ -82,7 +87,11 @@
           <label for="donorMessage">ข้อความของคุณ (จะถูกอ่านออกเสียงโดย AI)</label>
           <textarea id="donorMessage" placeholder="ฝากข้อความถึงเราที่นี่..." rows="2"></textarea>
         </div>
-
+    <p id="statusNote" class="status-note" style="display: none;">
+        <span class="note-dot"></span>
+          <span>หมายเหตุ: สถานะขณะนี้ <span class="note-highlight">'โดขึ้นจอ | ปิดอยู่'</span> ค่าเลี้ยงกาแฟจะส่งถึงปกติ
+        <br>เพียงแต่จะไม่แจ้งเตือนขึ้นจอขณะไลฟ์สด</span>
+      </p>
         <button id="btnDonate" class="btn-primary" disabled>
           ดำเนินการต่อ
         </button>

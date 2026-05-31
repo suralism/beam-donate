@@ -49,13 +49,14 @@ const defaultSettings = {
 // ========== SSE Alert System ==========
 // เก็บ list ของ connected overlay clients
 let sseClients = [];
+let isOverlayActive = false; // สถานะการเปิดใช้งาน Overlay (ผ่าน Token)
 
 // Broadcast alert ไปยังทุก connected overlay
 function broadcastAlert(alertData) {
   const data = JSON.stringify(alertData);
   console.log(`📢 Broadcasting alert to ${sseClients.length} client(s):`, alertData.donor || 'System Update', alertData.amount || '');
   sseClients.forEach(client => {
-    client.write(`data: ${data}\n\n`);
+    client.res.write(`data: ${data}\n\n`);
   });
 }
 
@@ -270,6 +271,21 @@ app.get('/thank-you', (req, res) => {
 
 // SSE: Stream alerts ไปยัง overlay
 app.get('/api/alerts/stream', (req, res) => {
+  const token = req.query.token;
+  const isValidToken = token && token === process.env.OVERLAY_TOKEN;
+
+  if (!isValidToken) {
+    console.log(`⚠️ Unauthorized overlay attempt: token=${token}`);
+    // We still let them connect to see the alerts, but they won't be marked as "Active" in Admin
+    // Or should we block them? The user said "แสดงไฟสีแดงเมื่อ... มีคนพยายามเชื่อมต่อโดยไม่มี Token ที่ถูกต้อง"
+    // This implies they might still connect but be unauthorized. 
+    // However, typically we'd want to block if we want a secure overlay. 
+    // But the request says "บันทึกและพ่นสถานะออกไปบอกหน้า Admin" if token is correct.
+  } else {
+    isOverlayActive = true;
+    console.log(`✅ Authorized Overlay connected!`);
+  }
+
   // ตั้งค่า SSE headers
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -281,9 +297,9 @@ app.get('/api/alerts/stream', (req, res) => {
   // ส่ง initial connection event
   res.write(`data: ${JSON.stringify({ type: 'connected', message: 'Overlay connected' })}\n\n`);
 
-  // เพิ่ม client เข้า list
-  sseClients.push(res);
-  console.log(`🔗 Overlay connected. Total clients: ${sseClients.length}`);
+  // เพิ่ม client เข้า list (เก็บเป็น object เพื่อระบุว่า validated หรือไม่)
+  sseClients.push({ res, validated: isValidToken });
+  console.log(`🔗 Overlay connected. Total clients: ${sseClients.length} (Active: ${isOverlayActive})`);
 
   // Keep-alive ping ทุก 30 วินาที
   const keepAlive = setInterval(() => {
@@ -293,9 +309,18 @@ app.get('/api/alerts/stream', (req, res) => {
   // Cleanup เมื่อ client disconnect
   req.on('close', () => {
     clearInterval(keepAlive);
-    sseClients = sseClients.filter(client => client !== res);
-    console.log(`🔌 Overlay disconnected. Total clients: ${sseClients.length}`);
+    sseClients = sseClients.filter(client => client.res !== res);
+    
+    // ตรวจสอบว่ายังมี validated client เหลืออยู่ไหม
+    isOverlayActive = sseClients.some(client => client.validated);
+    
+    console.log(`🔌 Overlay disconnected. Total clients: ${sseClients.length} (Active: ${isOverlayActive})`);
   });
+});
+
+// API: เช็คสถานะการเปิดใช้งาน Overlay (สำหรับ Admin)
+app.get('/api/overlay/status', (req, res) => {
+  res.json({ active: isOverlayActive });
 });
 
 // API: ดึงรายการธุรกรรมทั้งหมด
@@ -486,6 +511,11 @@ app.get('/login-failed', (req, res) => {
 // Serve admin page
 app.get('/admin', ensureAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// API: ดึง Token ของ Overlay (สำหรับ Admin เท่านั้น)
+app.get('/api/overlay/token', ensureAuthenticated, (req, res) => {
+  res.json({ token: process.env.OVERLAY_TOKEN });
 });
 
 // Start server

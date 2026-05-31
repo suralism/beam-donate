@@ -86,7 +86,16 @@ function hexToRgbA(hex, alpha = 1) {
 // ========== Connect to SSE stream ==========
 function connectSSE() {
   const baseUrl = window.location.origin;
-  eventSource = new EventSource(`${baseUrl}/api/alerts/stream`);
+  
+  // Extract token from current page URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  
+  const streamUrl = token 
+    ? `${baseUrl}/api/alerts/stream?token=${encodeURIComponent(token)}`
+    : `${baseUrl}/api/alerts/stream`;
+
+  eventSource = new EventSource(streamUrl);
 
   eventSource.onopen = () => {
     console.log('✅ SSE connected');

@@ -573,13 +573,59 @@ function escapeHtml(str) {
 
 // ========== Boot Sequence ==========
 document.addEventListener('DOMContentLoaded', () => {
-  // Sync the current host domain into copy OBS box
+  // Sync the current host domain and Token into copy OBS box
   const baseUrl = window.location.origin;
-  document.getElementById('obsOverlayUrl').value = `${baseUrl}/overlay`;
+  updateObsUrlWithToken(baseUrl);
 
   fetchTransactions();
   loadOverlaySettings();
   
+  // Check Overlay Status
+  updateOverlayStatus();
+  setInterval(updateOverlayStatus, 5000); // Check every 5 seconds
+
   // Auto refresh table statistics every 20 seconds silently
   setInterval(fetchTransactions, 20000);
 });
+
+async function updateObsUrlWithToken(baseUrl) {
+  const urlInput = document.getElementById('obsOverlayUrl');
+  if (!urlInput) return;
+
+  try {
+    const response = await fetch('/api/overlay/token');
+    if (response.ok) {
+      const { token } = await response.json();
+      urlInput.value = `${baseUrl}/overlay?token=${token}`;
+    } else {
+      // Fallback to plain URL if token fetch fails
+      urlInput.value = `${baseUrl}/overlay`;
+    }
+  } catch (err) {
+    console.error('Failed to fetch overlay token:', err);
+    urlInput.value = `${baseUrl}/overlay`;
+  }
+}
+
+async function updateOverlayStatus() {
+  try {
+    const response = await fetch('/api/overlay/status');
+    if (response.ok) {
+      const { active } = await response.json();
+      const indicator = document.getElementById('overlayStatusIndicator');
+      const text = document.getElementById('overlayStatusText');
+      
+      if (active) {
+        indicator.className = 'status-indicator online';
+        text.textContent = 'ออนไลน์ (Active)';
+        text.style.color = 'var(--success)';
+      } else {
+        indicator.className = 'status-indicator offline';
+        text.textContent = 'ออฟไลน์ (Inactive)';
+        text.style.color = 'var(--text-muted)';
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch overlay status:', err);
+  }
+}

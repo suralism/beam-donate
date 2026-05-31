@@ -139,3 +139,55 @@ function stopPolling() {
     pollInterval = null;
   }
 }
+
+// Widget Status Check
+async function updateStatus() {
+  const statusBtn = document.getElementById('statusBtn');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const statusNote = document.getElementById('statusNote');
+  const refreshIcon = statusBtn?.querySelector('.lucide-refresh-ccw');
+
+  if (!statusBtn || !statusDot || !statusText) return;
+
+  // Start Loading Animation
+  if (refreshIcon) refreshIcon.classList.add('spinning');
+  statusText.textContent = 'ตรวจสอบสถานะ...';
+
+  try {
+    // ใช้ Promise.all เพื่อดึงข้อมูลและหน่วงเวลาขั้นต่ำ 1.2 วินาที เพื่อความนุ่มนวล (Premium Feel)
+    const [response] = await Promise.all([
+      fetch('/api/overlay/status'),
+      new Promise(resolve => setTimeout(resolve, 1200))
+    ]);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.active) {
+        statusDot.classList.add('online');
+        statusText.textContent = 'โดขึ้นจอ | เปิดอยู่';
+        if (statusNote) statusNote.style.display = 'none';
+      } else {
+        throw new Error('Overlay inactive');
+      }
+    } else {
+      throw new Error();
+    }
+  } catch (error) {
+    statusDot.classList.remove('online');
+    statusText.textContent = 'โดขึ้นจอ | ปิดอยู่';
+    if (statusNote) statusNote.style.display = 'block';
+  } finally {
+    // Stop Loading Animation
+    if (refreshIcon) refreshIcon.classList.remove('spinning');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateStatus();
+  const statusBtn = document.getElementById('statusBtn');
+  if (statusBtn) {
+    statusBtn.addEventListener('click', updateStatus);
+  }
+});
+
